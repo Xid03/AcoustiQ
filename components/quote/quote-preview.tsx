@@ -1,33 +1,38 @@
+"use client";
+
 import { FileDown } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
-
-const quoteItems = [
-  {
-    item: "Acoustic Wall Panel - Wave Wood",
-    placement: "Side Walls",
-    qty: "24 panels",
-    unit: "$89.00",
-    total: "$2,136.00"
-  },
-  {
-    item: "Acoustic Ceiling Panel - Cloud 1200",
-    placement: "Ceiling",
-    qty: "8 panels",
-    unit: "$119.00",
-    total: "$952.00"
-  },
-  {
-    item: "Bass Trap Corner - Pro Series",
-    placement: "Corners",
-    qty: "4 units",
-    unit: "$99.00",
-    total: "$396.00"
-  }
-];
+import {
+  calculateFloorArea,
+  calculateProductQuantities,
+  calculateQuoteTotals,
+  calculateVolume,
+  formatCurrency
+} from "@/lib/calculations/acoustic-calculations";
+import {
+  defaultRoomDetails,
+  useConfiguratorStore
+} from "@/lib/stores/configurator-store";
 
 export function QuotePreview() {
+  const roomDetails =
+    useConfiguratorStore((state) => state.roomDetails) ?? defaultRoomDetails;
+  const storedProducts = useConfiguratorStore((state) => state.selectedProducts);
+  const leadDetails = useConfiguratorStore((state) => state.leadDetails);
+  const quoteItems =
+    storedProducts.length > 0
+      ? storedProducts
+      : calculateProductQuantities(roomDetails);
+  const totals = calculateQuoteTotals(quoteItems);
+  const floorArea = calculateFloorArea(roomDetails.length, roomDetails.width);
+  const volume = calculateVolume(
+    roomDetails.length,
+    roomDetails.width,
+    roomDetails.height
+  );
+
   return (
     <aside className="rounded-xl border border-slate-300 bg-slate-100 p-5 shadow-sm shadow-slate-200/70 sm:p-6">
       <div className="flex items-center justify-between gap-4">
@@ -58,18 +63,27 @@ export function QuotePreview() {
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <p className="text-xs font-medium text-slate-500">Prepared For:</p>
-              <p className="mt-2 text-sm font-semibold text-indigo-700">John Doe</p>
-              <p className="mt-1 text-sm text-slate-700">Acme Corporation</p>
-              <p className="mt-1 text-sm text-slate-700">john.doe@acme.com</p>
+              <p className="mt-2 text-sm font-semibold text-indigo-700">
+                {leadDetails?.fullName || "John Doe"}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                {leadDetails?.companyName || "Acme Corporation"}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                {leadDetails?.email || "john.doe@acme.com"}
+              </p>
             </div>
             <div>
               <p className="text-xs font-medium text-slate-500">Project Summary:</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">Office</p>
-              <p className="mt-1 text-sm font-mono tabular-nums text-slate-700">
-                20 ft x 16 ft x 10 ft
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {roomDetails.roomType}
               </p>
               <p className="mt-1 text-sm font-mono tabular-nums text-slate-700">
-                320 sq ft • 3,200 cu ft
+                {roomDetails.length} ft x {roomDetails.width} ft x{" "}
+                {roomDetails.height} ft
+              </p>
+              <p className="mt-1 text-sm font-mono tabular-nums text-slate-700">
+                {floorArea.toLocaleString()} sq ft - {volume.toLocaleString()} cu ft
               </p>
             </div>
           </div>
@@ -99,21 +113,21 @@ export function QuotePreview() {
               </thead>
               <tbody>
                 {quoteItems.map((item) => (
-                  <tr key={item.item}>
+                  <tr key={item.id}>
                     <td className="border-b border-slate-100 px-3 py-4 text-xs font-medium text-slate-700">
-                      {item.item}
+                      {item.productName} - {item.variant}
                     </td>
                     <td className="border-b border-slate-100 px-3 py-4 text-xs text-slate-700">
                       {item.placement}
                     </td>
                     <td className="border-b border-slate-100 px-3 py-4 text-right font-mono text-xs tabular-nums text-slate-700">
-                      {item.qty}
+                      {item.quantity} {item.unitLabel}
                     </td>
                     <td className="border-b border-slate-100 px-3 py-4 text-right font-mono text-xs tabular-nums text-slate-900">
-                      {item.unit}
+                      {formatCurrency(item.unitPrice)}
                     </td>
                     <td className="border-b border-slate-100 px-3 py-4 text-right font-mono text-xs font-semibold tabular-nums text-slate-900">
-                      {item.total}
+                      {formatCurrency(item.quantity * item.unitPrice)}
                     </td>
                   </tr>
                 ))}
@@ -124,9 +138,9 @@ export function QuotePreview() {
 
         <dl className="ml-auto mt-5 max-w-[260px] space-y-3">
           {[
-            ["Subtotal", "$3,484.00"],
-            ["Shipping", "$100.00"],
-            ["Tax (10%)", "$346.40"]
+            ["Subtotal", formatCurrency(totals.subtotal)],
+            ["Shipping", formatCurrency(totals.shipping)],
+            ["Tax (10%)", formatCurrency(totals.tax)]
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4">
               <dt className="text-sm text-slate-600">{label}</dt>
@@ -140,7 +154,7 @@ export function QuotePreview() {
               Total
             </dt>
             <dd className="font-mono text-xl font-semibold tabular-nums text-slate-900">
-              $4,030.40
+              {formatCurrency(totals.total)}
             </dd>
           </div>
         </dl>

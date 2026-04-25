@@ -1,4 +1,8 @@
-export function PerformanceCard() {
+type PerformanceCardProps = {
+  value: number;
+};
+
+export function PerformanceCard({ value }: PerformanceCardProps) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold tracking-tight text-slate-800">
@@ -23,12 +27,12 @@ export function PerformanceCard() {
               stroke="#10b981"
               strokeLinecap="round"
               strokeWidth="10"
-              strokeDasharray="205 302"
+              strokeDasharray={`${Math.round((value / 100) * 302)} 302`}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="font-mono text-3xl font-semibold tabular-nums text-slate-900">
-              68%
+              {value}%
             </span>
             <span className="mt-1 text-xs font-medium text-slate-500">
               Reduction

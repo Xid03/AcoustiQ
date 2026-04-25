@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Building2,
   Folder,
@@ -8,14 +10,22 @@ import {
   Send,
   User
 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  type LeadCaptureFormValues,
+  leadCaptureSchema
+} from "@/lib/schemas/configurator-schema";
+import { useConfiguratorStore } from "@/lib/stores/configurator-store";
 
 const contactFields = [
   {
+    name: "fullName",
     label: "Full Name",
     required: true,
     placeholder: "Enter your full name",
@@ -23,6 +33,7 @@ const contactFields = [
     type: "text"
   },
   {
+    name: "email",
     label: "Email Address",
     required: true,
     placeholder: "Enter your email address",
@@ -30,6 +41,7 @@ const contactFields = [
     type: "email"
   },
   {
+    name: "phone",
     label: "Phone Number",
     required: false,
     placeholder: "Enter your phone number",
@@ -37,17 +49,44 @@ const contactFields = [
     type: "tel"
   },
   {
+    name: "companyName",
     label: "Company Name",
     required: false,
     placeholder: "Enter your company name",
     icon: Building2,
     type: "text"
   }
-];
+] as const;
 
 export function LeadCaptureForm() {
+  const setLeadDetails = useConfiguratorStore((state) => state.setLeadDetails);
+  const localSubmissionMessage = useConfiguratorStore(
+    (state) => state.localSubmissionMessage
+  );
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitSuccessful }
+  } = useForm<LeadCaptureFormValues>({
+    resolver: zodResolver(leadCaptureSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      companyName: "",
+      projectName: "",
+      additionalNotes: "",
+      marketingConsent: true
+    }
+  });
+
+  const onSubmit = (values: LeadCaptureFormValues) => {
+    setLeadDetails(values);
+  };
+
   return (
-    <form className="bg-transparent">
+    <form className="bg-transparent" onSubmit={handleSubmit(onSubmit)}>
       <section aria-labelledby="contact-info-title">
         <h2
           id="contact-info-title"
@@ -78,8 +117,19 @@ export function LeadCaptureForm() {
                     className="h-11 border-slate-300 bg-white pl-10 shadow-sm"
                     required={field.required}
                     aria-label={field.label}
+                    aria-invalid={Boolean(errors[field.name])}
+                    aria-describedby={`${field.name}-error`}
+                    {...register(field.name)}
                   />
                 </span>
+                {errors[field.name]?.message ? (
+                  <span
+                    id={`${field.name}-error`}
+                    className="mt-1 block text-xs text-red-600"
+                  >
+                    {errors[field.name]?.message}
+                  </span>
+                ) : null}
               </label>
             );
           })}
@@ -102,6 +152,7 @@ export function LeadCaptureForm() {
                 placeholder="Enter a name for your project"
                 className="h-11 border-slate-300 bg-white pl-10 shadow-sm"
                 aria-label="Project Name"
+                {...register("projectName")}
               />
             </span>
           </label>
@@ -116,15 +167,34 @@ export function LeadCaptureForm() {
                 placeholder="Tell us more about your project, timeline, or any specific requirements..."
                 className="border-slate-300 bg-white pl-10 shadow-sm"
                 aria-label="Additional Notes"
+                aria-invalid={Boolean(errors.additionalNotes)}
+                aria-describedby="additionalNotes-error"
+                {...register("additionalNotes")}
               />
             </span>
+            {errors.additionalNotes?.message ? (
+              <span id="additionalNotes-error" className="mt-1 block text-xs text-red-600">
+                {errors.additionalNotes.message}
+              </span>
+            ) : null}
           </label>
         </div>
       </section>
 
       <div className="mt-6 space-y-3">
         <label className="flex items-start gap-3 text-sm text-slate-600">
-          <Checkbox defaultChecked className="mt-0.5" aria-label="Marketing consent" />
+          <Controller
+            control={control}
+            name="marketingConsent"
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                className="mt-0.5"
+                aria-label="Marketing consent"
+              />
+            )}
+          />
           <span>
             I agree to receive emails about products, updates, and offers.
           </span>
@@ -134,10 +204,16 @@ export function LeadCaptureForm() {
         </p>
       </div>
 
-      <Button type="button" className="mt-6 h-12 w-full gap-3 text-base">
+      <Button type="submit" className="mt-6 h-12 w-full gap-3 text-base">
         <Send className="h-4 w-4" />
         Send Me My Quote
       </Button>
+
+      {isSubmitSuccessful && localSubmissionMessage ? (
+        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          {localSubmissionMessage}
+        </p>
+      ) : null}
 
       <p className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500">
         <Lock className="h-4 w-4" />

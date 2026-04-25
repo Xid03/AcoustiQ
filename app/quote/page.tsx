@@ -1,12 +1,28 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { EmptyConfiguratorState } from "@/components/configurator/empty-configurator-state";
 import { LeadCaptureForm } from "@/components/quote/lead-capture-form";
 import { QuotePreview } from "@/components/quote/quote-preview";
 import { StepProgress } from "@/components/configurator/step-progress";
 import { Button } from "@/components/ui/button";
+import { useConfiguratorStore } from "@/lib/stores/configurator-store";
 
 export default function QuotePage() {
+  const roomDetails = useConfiguratorStore((state) => state.roomDetails);
+
+  if (!roomDetails) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+          <EmptyConfiguratorState />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">

@@ -1,5 +1,6 @@
 import { Building2, Presentation, Radio, User } from "lucide-react";
 
+import type { RoomType } from "@/lib/stores/configurator-store";
 import { cn } from "@/lib/utils";
 
 const roomTypes = [
@@ -25,17 +26,23 @@ const roomTypes = [
   }
 ];
 
-export function RoomTypeSelector() {
+type RoomTypeSelectorProps = {
+  value: RoomType;
+  onChange: (value: RoomType) => void;
+};
+
+export function RoomTypeSelector({ value, onChange }: RoomTypeSelectorProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {roomTypes.map((room, index) => {
         const Icon = room.icon;
-        const selected = index === 0;
+        const selected = room.title === value;
 
         return (
           <button
             key={room.title}
             type="button"
+            onClick={() => onChange(room.title as RoomType)}
             className={cn(
               "min-h-[128px] rounded-xl border border-slate-200 bg-white p-4 text-center transition-all duration-150 active:scale-[0.98] hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
               selected &&

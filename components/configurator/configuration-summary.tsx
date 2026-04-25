@@ -1,14 +1,35 @@
-const summary = [
-  ["Room Type", "Office"],
-  ["Dimensions (L x W x H)", "20 ft x 16 ft x 10 ft"],
-  ["Floor Area", "320 sq ft"],
-  ["Volume", "3,200 cu ft"],
-  ["Ceiling Type", "Hard Ceiling"],
-  ["Floor Type", "Hard Floor"],
-  ["Windows", "Large"]
-];
+import {
+  calculateFloorArea,
+  calculateVolume
+} from "@/lib/calculations/acoustic-calculations";
+import type { RoomDetails } from "@/lib/stores/configurator-store";
 
-export function ConfigurationSummary() {
+type ConfigurationSummaryProps = {
+  roomDetails: RoomDetails;
+};
+
+export function ConfigurationSummary({ roomDetails }: ConfigurationSummaryProps) {
+  const floorArea = calculateFloorArea(roomDetails.length, roomDetails.width);
+  const volume = calculateVolume(
+    roomDetails.length,
+    roomDetails.width,
+    roomDetails.height
+  );
+  const summary = [
+    ["Room Type", roomDetails.roomType],
+    [
+      "Dimensions (L x W x H)",
+      `${roomDetails.length || 0} ft x ${roomDetails.width || 0} ft x ${
+        roomDetails.height || 0
+      } ft`
+    ],
+    ["Floor Area", `${floorArea.toLocaleString()} sq ft`],
+    ["Volume", `${volume.toLocaleString()} cu ft`],
+    ["Ceiling Type", roomDetails.ceilingType],
+    ["Floor Type", roomDetails.floorType],
+    ["Windows", roomDetails.windows]
+  ];
+
   return (
     <aside className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-medium tracking-tight text-slate-800">Summary</h2>

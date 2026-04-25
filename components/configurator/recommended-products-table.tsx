@@ -1,40 +1,8 @@
 import { cn } from "@/lib/utils";
-
-const products = [
-  {
-    name: "Acoustic Wall Panel",
-    variant: "Wave Wood",
-    placement: "Side Walls",
-    placementNote: "(Left & Right)",
-    quantity: "24 panels",
-    note: "(12 each wall)",
-    unitPrice: "$89.00",
-    total: "$2,136.00",
-    thumbnail: "wood"
-  },
-  {
-    name: "Acoustic Ceiling Panel",
-    variant: "Cloud 1200",
-    placement: "Ceiling",
-    placementNote: "",
-    quantity: "8 panels",
-    note: "",
-    unitPrice: "$119.00",
-    total: "$952.00",
-    thumbnail: "cloud"
-  },
-  {
-    name: "Bass Trap Corner",
-    variant: "Pro Series",
-    placement: "Corners",
-    placementNote: "(4 corners)",
-    quantity: "4 units",
-    note: "",
-    unitPrice: "$99.00",
-    total: "$396.00",
-    thumbnail: "bass"
-  }
-];
+import { formatCurrency } from "@/lib/calculations/acoustic-calculations";
+import type { QuoteItem } from "@/lib/stores/configurator-store";
+import { Button } from "@/components/ui/button";
+import { Minus, Plus } from "lucide-react";
 
 function ProductThumbnail({ type }: { type: string }) {
   return (
@@ -53,7 +21,15 @@ function ProductThumbnail({ type }: { type: string }) {
   );
 }
 
-export function RecommendedProductsTable() {
+type RecommendedProductsTableProps = {
+  products: QuoteItem[];
+  onQuantityChange: (productId: string, quantity: number) => void;
+};
+
+export function RecommendedProductsTable({
+  products,
+  onQuantityChange
+}: RecommendedProductsTableProps) {
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
@@ -76,7 +52,7 @@ export function RecommendedProductsTable() {
           <tbody>
             {products.map((product) => (
               <tr
-                key={product.name}
+                key={product.id}
                 className="border-b border-slate-100 transition-colors duration-100 hover:bg-slate-50/50"
               >
                 <td className="border-b border-slate-100 px-4 py-4">
@@ -84,7 +60,7 @@ export function RecommendedProductsTable() {
                     <ProductThumbnail type={product.thumbnail} />
                     <div>
                       <p className="text-sm font-semibold tracking-tight text-slate-900">
-                        {product.name}
+                        {product.productName}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         {product.variant}
@@ -101,16 +77,41 @@ export function RecommendedProductsTable() {
                   ) : null}
                 </td>
                 <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
-                  <span className="font-mono tabular-nums">{product.quantity}</span>
-                  {product.note ? (
-                    <span className="block text-xs text-slate-500">{product.note}</span>
-                  ) : null}
+                  <div className="inline-flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 min-h-8 w-8"
+                      aria-label={`Decrease ${product.productName}`}
+                      onClick={() =>
+                        onQuantityChange(product.id, product.quantity - 1)
+                      }
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="min-w-16 text-center font-mono tabular-nums">
+                      {product.quantity} {product.unitLabel}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 min-h-8 w-8"
+                      aria-label={`Increase ${product.productName}`}
+                      onClick={() =>
+                        onQuantityChange(product.id, product.quantity + 1)
+                      }
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </td>
                 <td className="border-b border-slate-100 px-4 py-4 font-mono text-sm font-medium tabular-nums text-slate-900">
-                  {product.unitPrice}
+                  {formatCurrency(product.unitPrice)}
                 </td>
                 <td className="border-b border-slate-100 px-4 py-4 font-mono text-sm font-semibold tabular-nums text-slate-900">
-                  {product.total}
+                  {formatCurrency(product.quantity * product.unitPrice)}
                 </td>
               </tr>
             ))}

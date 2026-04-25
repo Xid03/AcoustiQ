@@ -2,21 +2,31 @@ import Link from "next/link";
 import { FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/calculations/acoustic-calculations";
 
-const totals = [
-  ["Subtotal", "$3,484.00"],
-  ["Shipping", "$100.00"],
-  ["Tax (10%)", "$346.40"]
-];
+type QuoteSummaryCardProps = {
+  totals: {
+    subtotal: number;
+    shipping: number;
+    tax: number;
+    total: number;
+  };
+};
 
-export function QuoteSummaryCard() {
+export function QuoteSummaryCard({ totals }: QuoteSummaryCardProps) {
+  const rows = [
+    ["Subtotal", formatCurrency(totals.subtotal)],
+    ["Shipping", formatCurrency(totals.shipping)],
+    ["Tax (10%)", formatCurrency(totals.tax)]
+  ];
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold tracking-tight text-slate-800">
         Quote Summary
       </h2>
       <dl className="mt-5 space-y-4">
-        {totals.map(([label, value]) => (
+        {rows.map(([label, value]) => (
           <div key={label} className="flex items-center justify-between gap-4">
             <dt className="text-sm text-slate-600">{label}</dt>
             <dd className="font-mono text-sm font-medium tabular-nums text-slate-900">
@@ -29,7 +39,7 @@ export function QuoteSummaryCard() {
         <div className="flex items-end justify-between gap-4">
           <span className="text-sm font-semibold text-slate-800">Total</span>
           <span className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-slate-900">
-            $4,030.40
+            {formatCurrency(totals.total)}
           </span>
         </div>
         <p className="mt-4 rounded-full bg-emerald-50 px-3 py-1 text-center text-xs font-medium text-emerald-700">

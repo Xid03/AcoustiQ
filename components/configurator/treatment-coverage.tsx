@@ -1,21 +1,29 @@
-const coverage = [
-  {
-    label: "Wall Coverage",
-    value: "42%",
-    recommended: "Recommended: 30% - 60%",
-    width: "42%",
-    fill: "bg-indigo-600"
-  },
-  {
-    label: "Ceiling Coverage",
-    value: "28%",
-    recommended: "Recommended: 20% - 40%",
-    width: "28%",
-    fill: "bg-emerald-500"
-  }
-];
+type TreatmentCoverageProps = {
+  wallCoverage: number;
+  ceilingCoverage: number;
+};
 
-export function TreatmentCoverage() {
+export function TreatmentCoverage({
+  wallCoverage,
+  ceilingCoverage
+}: TreatmentCoverageProps) {
+  const coverage = [
+    {
+      label: "Wall Coverage",
+      value: `${wallCoverage}%`,
+      recommended: "Recommended: 30% - 60%",
+      width: `${wallCoverage}%`,
+      fill: "bg-indigo-600"
+    },
+    {
+      label: "Ceiling Coverage",
+      value: `${ceilingCoverage}%`,
+      recommended: "Recommended: 20% - 40%",
+      width: `${ceilingCoverage}%`,
+      fill: "bg-emerald-500"
+    }
+  ];
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold tracking-tight text-slate-800">

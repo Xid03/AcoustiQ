@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronDown, Save } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 import { ConfigurationSummary } from "@/components/configurator/configuration-summary";
 import { HelpCard } from "@/components/configurator/help-card";
@@ -8,23 +13,55 @@ import { RoomDimensionsForm } from "@/components/configurator/room-dimensions-fo
 import { RoomTypeSelector } from "@/components/configurator/room-type-selector";
 import { StepProgress } from "@/components/configurator/step-progress";
 import { Button } from "@/components/ui/button";
+import {
+  type RoomDetailsFormValues,
+  roomDetailsSchema
+} from "@/lib/schemas/configurator-schema";
+import {
+  defaultRoomDetails,
+  type CeilingType,
+  type FloorType,
+  type WindowSize,
+  useConfiguratorStore
+} from "@/lib/stores/configurator-store";
 
 const detailSelects = [
   {
     label: "Ceiling Type",
-    value: "Hard Ceiling (Concrete, Drywall)",
-    options: ["Hard Ceiling (Concrete, Drywall)", "Acoustic Tile", "Open Ceiling"]
+    name: "ceilingType",
+    options: ["Hard Ceiling", "Acoustic Tile", "Open Ceiling"]
   },
   {
     label: "Floor Type",
-    value: "Hard Floor (Wood, Tile, Concrete)",
-    options: ["Hard Floor (Wood, Tile, Concrete)", "Carpet", "Mixed"]
+    name: "floorType",
+    options: ["Hard Floor", "Carpet", "Mixed"]
   }
-];
+] as const;
 
 const windows = ["None", "Small", "Large"];
 
 export default function ConfigurePage() {
+  const router = useRouter();
+  const savedRoomDetails = useConfiguratorStore((state) => state.roomDetails);
+  const setRoomDetails = useConfiguratorStore((state) => state.setRoomDetails);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors }
+  } = useForm<RoomDetailsFormValues>({
+    resolver: zodResolver(roomDetailsSchema),
+    defaultValues: savedRoomDetails ?? defaultRoomDetails,
+    mode: "onBlur"
+  });
+  const watchedRoom = watch();
+
+  const onSubmit = (values: RoomDetailsFormValues) => {
+    setRoomDetails(values);
+    router.push("/configure/results");
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -53,7 +90,10 @@ export default function ConfigurePage() {
         </header>
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_330px]">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:p-7">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:p-7"
+          >
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
                 Let&apos;s start with your room details
@@ -73,7 +113,12 @@ export default function ConfigurePage() {
                   Room Type
                 </h2>
                 <div className="mt-3">
-                  <RoomTypeSelector />
+                  <RoomTypeSelector
+                    value={watchedRoom.roomType}
+                    onChange={(value) =>
+                      setValue("roomType", value, { shouldValidate: true })
+                    }
+                  />
                 </div>
               </section>
 
@@ -85,7 +130,7 @@ export default function ConfigurePage() {
                   Room Dimensions
                 </h2>
                 <div className="mt-3 grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(260px,0.9fr)] lg:items-stretch">
-                  <RoomDimensionsForm />
+                  <RoomDimensionsForm register={register} errors={errors} />
                   <RoomDiagram />
                 </div>
               </section>
@@ -105,7 +150,7 @@ export default function ConfigurePage() {
                       </span>
                       <span className="relative mt-2 block">
                         <select
-                          defaultValue={field.value}
+                          {...register(field.name)}
                           className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pr-9 text-sm text-slate-700 transition-all duration-150 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                           aria-label={field.label}
                         >
@@ -123,13 +168,18 @@ export default function ConfigurePage() {
                   <span className="text-xs font-medium text-slate-600">Windows</span>
                   <div className="mt-2 grid gap-3 sm:grid-cols-3">
                     {windows.map((window) => {
-                      const selected = window === "Large";
+                      const selected = watchedRoom.windows === window;
 
                       return (
                         <button
                           key={window}
                           type="button"
                           aria-pressed={selected}
+                          onClick={() =>
+                            setValue("windows", window as WindowSize, {
+                              shouldValidate: true
+                            })
+                          }
                           className={
                             selected
                               ? "min-h-[44px] rounded-lg border border-indigo-500 bg-indigo-50 px-4 text-sm font-medium text-indigo-700 ring-2 ring-indigo-500/20 transition-all duration-150 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
@@ -152,14 +202,24 @@ export default function ConfigurePage() {
                   Back
                 </Link>
               </Button>
-              <Button asChild className="px-6">
-                <Link href="/configure/results">Next: Select Products</Link>
+              <Button type="submit" className="px-6">
+                Next: Select Products
               </Button>
             </div>
-          </section>
+          </form>
 
           <div className="space-y-4">
-            <ConfigurationSummary />
+            <ConfigurationSummary
+              roomDetails={{
+                roomType: watchedRoom.roomType,
+                length: Number(watchedRoom.length) || 0,
+                width: Number(watchedRoom.width) || 0,
+                height: Number(watchedRoom.height) || 0,
+                ceilingType: watchedRoom.ceilingType as CeilingType,
+                floorType: watchedRoom.floorType as FloorType,
+                windows: watchedRoom.windows as WindowSize
+              }}
+            />
             <HelpCard />
           </div>
         </div>

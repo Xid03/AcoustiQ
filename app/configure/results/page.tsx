@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo } from "react";
 import { ArrowLeft } from "lucide-react";
 
+import { EmptyConfiguratorState } from "@/components/configurator/empty-configurator-state";
 import { PerformanceCard } from "@/components/configurator/performance-card";
 import { QuoteBenefitsRow } from "@/components/configurator/quote-benefits-row";
 import { QuoteSummaryCard } from "@/components/configurator/quote-summary-card";
@@ -9,8 +13,56 @@ import { RoomSummaryCard } from "@/components/configurator/room-summary-card";
 import { StepProgress } from "@/components/configurator/step-progress";
 import { TreatmentCoverage } from "@/components/configurator/treatment-coverage";
 import { Button } from "@/components/ui/button";
+import {
+  calculatePerformanceImprovement,
+  calculateProductQuantities,
+  calculateQuoteTotals,
+  calculateRecommendedCoverage,
+  calculateFloorArea
+} from "@/lib/calculations/acoustic-calculations";
+import { useConfiguratorStore } from "@/lib/stores/configurator-store";
 
 export default function ResultsPage() {
+  const roomDetails = useConfiguratorStore((state) => state.roomDetails);
+  const selectedProducts = useConfiguratorStore((state) => state.selectedProducts);
+  const setSelectedProducts = useConfiguratorStore(
+    (state) => state.setSelectedProducts
+  );
+  const updateProductQuantity = useConfiguratorStore(
+    (state) => state.updateProductQuantity
+  );
+
+  const recommendedProducts = useMemo(
+    () => (roomDetails ? calculateProductQuantities(roomDetails) : []),
+    [roomDetails]
+  );
+
+  useEffect(() => {
+    if (roomDetails && selectedProducts.length === 0) {
+      setSelectedProducts(recommendedProducts);
+    }
+  }, [recommendedProducts, roomDetails, selectedProducts.length, setSelectedProducts]);
+
+  if (!roomDetails) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+          <EmptyConfiguratorState />
+        </div>
+      </div>
+    );
+  }
+
+  const products = selectedProducts.length > 0 ? selectedProducts : recommendedProducts;
+  const totals = calculateQuoteTotals(products);
+  const floorArea = calculateFloorArea(roomDetails.length, roomDetails.width);
+  const coverage = calculateRecommendedCoverage(
+    roomDetails.roomType,
+    floorArea,
+    roomDetails.windows
+  );
+  const performance = calculatePerformanceImprovement(roomDetails, products);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -50,16 +102,19 @@ export default function ResultsPage() {
 
           <div className="mt-7 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_260px] xl:grid-cols-[230px_minmax(0,1fr)_280px]">
             <div className="space-y-5">
-              <RoomSummaryCard />
-              <PerformanceCard />
+              <RoomSummaryCard roomDetails={roomDetails} />
+              <PerformanceCard value={performance} />
             </div>
 
             <div className="space-y-5">
-              <RecommendedProductsTable />
-              <TreatmentCoverage />
+              <RecommendedProductsTable
+                products={products}
+                onQuantityChange={updateProductQuantity}
+              />
+              <TreatmentCoverage {...coverage} />
             </div>
 
-            <QuoteSummaryCard />
+            <QuoteSummaryCard totals={totals} />
           </div>
 
           <div className="mt-8">
