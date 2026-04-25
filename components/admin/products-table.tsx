@@ -1,28 +1,52 @@
-import { Eye, MoreVertical, Pencil } from "lucide-react";
+"use client";
 
+import { Eye, MoreVertical, Pencil } from "lucide-react";
+import Image from "next/image";
+
+import { ProductEditorPanel } from "@/components/admin/product-editor-panel";
 import { TablePagination } from "@/components/admin/table-pagination";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/calculations/acoustic-calculations";
 import type { ProductRow } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-function ProductThumbnail({ type }: { type: ProductRow["thumbnail_type"] }) {
+function ProductThumbnail({
+  imageUrl,
+  name,
+  type
+}: {
+  imageUrl: string | null;
+  name: string;
+  type: ProductRow["thumbnail_type"];
+}) {
   return (
     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
-      <span
-        className={cn(
-          "h-10 w-10 rounded-md",
-          type === "wood" &&
-            "bg-[repeating-linear-gradient(90deg,#7c4f2c_0_3px,#c79b6d_3px_7px,#5b3d25_7px_9px)]",
-          type === "oak" &&
-            "bg-[repeating-linear-gradient(90deg,#b98c5b_0_5px,#dfc29d_5px_10px,#8a5f38_10px_12px)]",
-          type === "cloud" &&
-            "bg-[radial-gradient(circle_at_30%_35%,#fff_0_15%,transparent_16%),radial-gradient(circle_at_70%_35%,#e7e5e4_0_16%,transparent_17%),radial-gradient(circle_at_50%_70%,#d6d3d1_0_18%,transparent_19%)] bg-white",
-          type === "baffle" && "bg-gradient-to-br from-slate-900 via-slate-700 to-slate-950",
-          type === "corner" && "bg-gradient-to-r from-slate-950 via-slate-800 to-slate-950",
-          type === "bass" && "bg-gradient-to-r from-zinc-950 via-zinc-800 to-zinc-950"
-        )}
-      />
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={`${name} product image`}
+          width={40}
+          height={40}
+          className="h-10 w-10 rounded-md object-cover"
+        />
+      ) : (
+        <span
+          className={cn(
+            "h-10 w-10 rounded-md",
+            type === "wood" &&
+              "bg-[repeating-linear-gradient(90deg,#7c4f2c_0_3px,#c79b6d_3px_7px,#5b3d25_7px_9px)]",
+            type === "oak" &&
+              "bg-[repeating-linear-gradient(90deg,#b98c5b_0_5px,#dfc29d_5px_10px,#8a5f38_10px_12px)]",
+            type === "cloud" &&
+              "bg-[radial-gradient(circle_at_30%_35%,#fff_0_15%,transparent_16%),radial-gradient(circle_at_70%_35%,#e7e5e4_0_16%,transparent_17%),radial-gradient(circle_at_50%_70%,#d6d3d1_0_18%,transparent_19%)] bg-white",
+            type === "baffle" &&
+              "bg-gradient-to-br from-slate-900 via-slate-700 to-slate-950",
+            type === "corner" &&
+              "bg-gradient-to-r from-slate-950 via-slate-800 to-slate-950",
+            type === "bass" && "bg-gradient-to-r from-zinc-950 via-zinc-800 to-zinc-950"
+          )}
+        />
+      )}
     </span>
   );
 }
@@ -49,7 +73,11 @@ export function ProductsTable({ products }: { products: ProductRow[] }) {
               <tr key={product.id} className="transition-colors duration-100 hover:bg-slate-50/50">
                 <td className="border-b border-slate-100 px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <ProductThumbnail type={product.thumbnail_type} />
+                    <ProductThumbnail
+                      imageUrl={product.image_url}
+                      name={product.name}
+                      type={product.thumbnail_type}
+                    />
                     <span className="text-sm font-medium text-slate-900">{product.name}</span>
                   </div>
                 </td>
@@ -78,14 +106,19 @@ export function ProductsTable({ products }: { products: ProductRow[] }) {
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5">
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
-                      aria-label={`Edit ${product.name}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
+                    <ProductEditorPanel
+                      product={product}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
+                          aria-label={`Edit ${product.name}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    />
                     <Button
                       variant="outline"
                       size="icon"
@@ -109,7 +142,10 @@ export function ProductsTable({ products }: { products: ProductRow[] }) {
           </tbody>
         </table>
       </div>
-      <TablePagination label="Showing 1 to 6 of 42 products" lastPage="7" />
+      <TablePagination
+        label={`Showing 1 to ${products.length} of ${products.length} products`}
+        lastPage="1"
+      />
     </section>
   );
 }

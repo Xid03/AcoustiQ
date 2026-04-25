@@ -4,14 +4,20 @@ import { Button } from "@/components/ui/button";
 
 type TablePaginationProps = {
   label?: string;
-  lastPage?: string;
+  lastPage?: string | number;
 };
 
 export function TablePagination({
   label = "Showing 1 to 8 of 128 results",
   lastPage = "16"
 }: TablePaginationProps) {
-  const pages = ["1", "2", "3", "4", "...", lastPage];
+  const pageCount = Number(lastPage);
+  const pages =
+    pageCount <= 1
+      ? ["1"]
+      : pageCount <= 4
+        ? Array.from({ length: pageCount }, (_, index) => String(index + 1))
+        : ["1", "2", "3", "4", "...", String(lastPage)];
 
   return (
     <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -22,6 +28,7 @@ export function TablePagination({
           size="icon"
           className="h-9 min-h-9 w-9"
           aria-label="Previous page"
+          disabled={pageCount <= 1}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -52,6 +59,7 @@ export function TablePagination({
           size="icon"
           className="h-9 min-h-9 w-9"
           aria-label="Next page"
+          disabled={pageCount <= 1}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

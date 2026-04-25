@@ -15,6 +15,7 @@ import {
   defaultRoomDetails,
   useConfiguratorStore
 } from "@/lib/stores/configurator-store";
+import { generateQuotePdf } from "@/lib/pdf/generate-quote-pdf";
 
 export function QuotePreview() {
   const roomDetails =
@@ -39,7 +40,18 @@ export function QuotePreview() {
         <h2 className="text-xl font-medium tracking-tight text-slate-900">
           Your Quote Preview
         </h2>
-        <Button variant="outline" className="h-10 min-h-10 gap-2 bg-white text-xs">
+        <Button
+          variant="outline"
+          className="h-10 min-h-10 gap-2 bg-white text-xs"
+          onClick={() => {
+            void generateQuotePdf({
+              leadDetails,
+              quoteItems,
+              roomDetails,
+              totals
+            });
+          }}
+        >
           <FileDown className="h-4 w-4 text-indigo-600" />
           PDF
         </Button>

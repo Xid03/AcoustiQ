@@ -21,5 +21,13 @@ export function createSupabaseClient(): SupabaseClient<Database> | null {
     return null;
   }
 
-  return createClient<Database>(supabaseUrl, supabaseClientKey);
+  return createClient<Database>(supabaseUrl, supabaseClientKey, {
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          cache: "no-store"
+        })
+    }
+  });
 }

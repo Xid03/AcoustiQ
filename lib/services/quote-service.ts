@@ -155,6 +155,7 @@ export const fallbackProducts: ProductRow[] = [
     status: "Active",
     stock: 152,
     thumbnail_type: "wood",
+    image_url: null,
     created_at: "2024-05-01T00:00:00.000Z"
   },
   {
@@ -167,6 +168,7 @@ export const fallbackProducts: ProductRow[] = [
     status: "Active",
     stock: 98,
     thumbnail_type: "oak",
+    image_url: null,
     created_at: "2024-05-01T00:00:00.000Z"
   },
   {
@@ -179,6 +181,7 @@ export const fallbackProducts: ProductRow[] = [
     status: "Active",
     stock: 76,
     thumbnail_type: "cloud",
+    image_url: null,
     created_at: "2024-05-01T00:00:00.000Z"
   },
   {
@@ -191,6 +194,7 @@ export const fallbackProducts: ProductRow[] = [
     status: "Active",
     stock: 64,
     thumbnail_type: "baffle",
+    image_url: null,
     created_at: "2024-05-01T00:00:00.000Z"
   },
   {
@@ -203,6 +207,7 @@ export const fallbackProducts: ProductRow[] = [
     status: "Active",
     stock: 120,
     thumbnail_type: "corner",
+    image_url: null,
     created_at: "2024-05-01T00:00:00.000Z"
   },
   {
@@ -215,6 +220,7 @@ export const fallbackProducts: ProductRow[] = [
     status: "Inactive",
     stock: 0,
     thumbnail_type: "bass",
+    image_url: null,
     created_at: "2024-05-01T00:00:00.000Z"
   }
 ];
@@ -339,4 +345,16 @@ export async function getProducts(): Promise<ProductRow[]> {
   }
 
   return data as unknown as ProductRow[];
+}
+
+export async function getProductsDataSource() {
+  const products = await getProducts();
+  const isFallback =
+    products.length === fallbackProducts.length &&
+    products.every((product, index) => product.id === fallbackProducts[index]?.id);
+
+  return {
+    products,
+    source: isFallback ? "fallback" : "supabase"
+  };
 }

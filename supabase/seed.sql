@@ -19,8 +19,30 @@ create table if not exists public.products (
   status text not null default 'Active' check (status in ('Active', 'Inactive')),
   stock integer not null default 0,
   thumbnail_type text not null default 'wood',
+  image_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.products
+add column if not exists image_url text;
+
+delete from public.products
+where id in (
+  select id
+  from (
+    select
+      id,
+      row_number() over (
+        partition by name
+        order by created_at asc, id asc
+      ) as duplicate_rank
+    from public.products
+  ) ranked_products
+  where duplicate_rank > 1
+);
+
+create unique index if not exists products_name_unique
+on public.products (name);
 
 create table if not exists public.leads (
   id uuid primary key default gen_random_uuid(),
@@ -64,6 +86,42 @@ create table if not exists public.quote_items (
   line_total numeric(10, 2) not null
 );
 
+create table if not exists public.quote_email_events (
+  id uuid primary key default gen_random_uuid(),
+  quote_id uuid not null references public.quotes(id) on delete cascade,
+  event_type text not null default 'quote_created',
+  recipient_email text not null,
+  status text not null default 'pending' check (status in ('pending', 'sent', 'failed')),
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.queue_quote_email_event()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  recipient text;
+begin
+  select email into recipient
+  from public.leads
+  where id = new.lead_id;
+
+  if recipient is not null then
+    insert into public.quote_email_events (quote_id, recipient_email)
+    values (new.id, recipient);
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_quote_created_queue_email on public.quotes;
+create trigger on_quote_created_queue_email
+after insert on public.quotes
+for each row
+execute function public.queue_quote_email_event();
+
 create or replace view public.lead_quote_overview as
 select
   leads.*,
@@ -77,6 +135,7 @@ alter table public.products enable row level security;
 alter table public.leads enable row level security;
 alter table public.quotes enable row level security;
 alter table public.quote_items enable row level security;
+alter table public.quote_email_events enable row level security;
 
 drop policy if exists "Public can read products" on public.products;
 create policy "Public can read products"
@@ -108,6 +167,11 @@ create policy "Public can read quotes"
 on public.quotes for select
 using (true);
 
+drop policy if exists "Public can read quote email events" on public.quote_email_events;
+create policy "Public can read quote email events"
+on public.quote_email_events for select
+using (true);
+
 insert into public.companies (id, name, brand_name)
 values ('11111111-1111-1111-1111-111111111111', 'Demo Acoustic Company', 'AcoustiQ')
 on conflict (id) do nothing;
@@ -119,4 +183,19 @@ values
   ('11111111-1111-1111-1111-111111111111', 'Acoustic Ceiling Panel - Cloud 1200', 'Ceiling Panels', 119.00, 'per panel', 'Active', 76, 'cloud'),
   ('11111111-1111-1111-1111-111111111111', 'Acoustic Ceiling Panel - Baffle', 'Ceiling Panels', 109.00, 'per panel', 'Active', 64, 'baffle'),
   ('11111111-1111-1111-1111-111111111111', 'Bass Trap Corner - Pro Series', 'Bass Traps', 99.00, 'per unit', 'Active', 120, 'corner'),
-  ('11111111-1111-1111-1111-111111111111', 'Bass Trap Panel - Pro Series', 'Bass Traps', 89.00, 'per unit', 'Inactive', 0, 'bass');
+  ('11111111-1111-1111-1111-111111111111', 'Bass Trap Panel - Pro Series', 'Bass Traps', 89.00, 'per unit', 'Inactive', 0, 'bass')
+on conflict (name) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Public can read product images" on storage.objects;
+create policy "Public can read product images"
+on storage.objects for select
+using (bucket_id = 'product-images');
+
+drop policy if exists "Public can upload product images" on storage.objects;
+create policy "Public can upload product images"
+on storage.objects for insert
+with check (bucket_id = 'product-images');

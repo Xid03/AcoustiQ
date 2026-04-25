@@ -37,6 +37,7 @@ export type ProductRow = {
   status: "Active" | "Inactive";
   stock: number;
   thumbnail_type: "wood" | "oak" | "cloud" | "baffle" | "corner" | "bass";
+  image_url: string | null;
   created_at: string;
 };
 
