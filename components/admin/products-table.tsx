@@ -2,18 +2,11 @@ import { Eye, MoreVertical, Pencil } from "lucide-react";
 
 import { TablePagination } from "@/components/admin/table-pagination";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/calculations/acoustic-calculations";
+import type { ProductRow } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-const products = [
-  ["Acoustic Wall Panel - Wave Wood", "Wall Panels", "$89.00", "per panel", "Active", "152", "wood"],
-  ["Acoustic Wall Panel - Linear Oak", "Wall Panels", "$92.00", "per panel", "Active", "98", "oak"],
-  ["Acoustic Ceiling Panel - Cloud 1200", "Ceiling Panels", "$119.00", "per panel", "Active", "76", "cloud"],
-  ["Acoustic Ceiling Panel - Baffle", "Ceiling Panels", "$109.00", "per panel", "Active", "64", "baffle"],
-  ["Bass Trap Corner - Pro Series", "Bass Traps", "$99.00", "per unit", "Active", "120", "corner"],
-  ["Bass Trap Panel - Pro Series", "Bass Traps", "$89.00", "per unit", "Inactive", "0", "bass"]
-];
-
-function ProductThumbnail({ type }: { type: string }) {
+function ProductThumbnail({ type }: { type: ProductRow["thumbnail_type"] }) {
   return (
     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
       <span
@@ -34,7 +27,7 @@ function ProductThumbnail({ type }: { type: string }) {
   );
 }
 
-export function ProductsTable() {
+export function ProductsTable({ products }: { products: ProductRow[] }) {
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
@@ -52,36 +45,36 @@ export function ProductsTable() {
             </tr>
           </thead>
           <tbody>
-            {products.map(([name, category, price, unit, status, stock, thumbnail]) => (
-              <tr key={name} className="transition-colors duration-100 hover:bg-slate-50/50">
+            {products.map((product) => (
+              <tr key={product.id} className="transition-colors duration-100 hover:bg-slate-50/50">
                 <td className="border-b border-slate-100 px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <ProductThumbnail type={thumbnail} />
-                    <span className="text-sm font-medium text-slate-900">{name}</span>
+                    <ProductThumbnail type={product.thumbnail_type} />
+                    <span className="text-sm font-medium text-slate-900">{product.name}</span>
                   </div>
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5 text-sm text-slate-700">
-                  {category}
+                  {product.category}
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5 font-mono text-sm font-medium tabular-nums text-slate-900">
-                  {price}
+                  {formatCurrency(product.price)}
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5 text-sm text-slate-700">
-                  {unit}
+                  {product.unit_label}
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5">
                   <span
                     className={
-                      status === "Active"
+                      product.status === "Active"
                         ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800"
                         : "inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
                     }
                   >
-                    {status}
+                    {product.status}
                   </span>
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5 font-mono text-sm font-medium tabular-nums text-slate-900">
-                  {stock}
+                  {product.stock}
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3.5">
                   <div className="flex items-center gap-2">
@@ -89,7 +82,7 @@ export function ProductsTable() {
                       variant="outline"
                       size="icon"
                       className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
-                      aria-label={`Edit ${name}`}
+                      aria-label={`Edit ${product.name}`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -97,7 +90,7 @@ export function ProductsTable() {
                       variant="outline"
                       size="icon"
                       className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
-                      aria-label={`View ${name}`}
+                      aria-label={`View ${product.name}`}
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
@@ -105,7 +98,7 @@ export function ProductsTable() {
                       variant="outline"
                       size="icon"
                       className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
-                      aria-label={`More actions for ${name}`}
+                      aria-label={`More actions for ${product.name}`}
                     >
                       <MoreVertical className="h-3.5 w-3.5" />
                     </Button>

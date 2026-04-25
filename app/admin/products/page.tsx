@@ -1,8 +1,13 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ProductsTable } from "@/components/admin/products-table";
 import { ProductsToolbar } from "@/components/admin/products-toolbar";
+import { getProducts } from "@/lib/services/quote-service";
 
-export default function AdminProductsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminProductsPage() {
+  const products = await getProducts();
+
   return (
     <AdminShell>
       <div className="space-y-6">
@@ -16,7 +21,7 @@ export default function AdminProductsPage() {
         </div>
 
         <ProductsToolbar />
-        <ProductsTable />
+        <ProductsTable products={products} />
       </div>
     </AdminShell>
   );

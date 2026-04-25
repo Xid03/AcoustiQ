@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Building2,
   Folder,
@@ -18,10 +19,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  calculateProductQuantities,
+  calculateQuoteTotals
+} from "@/lib/calculations/acoustic-calculations";
+import { createLeadAndQuote } from "@/lib/services/quote-service";
+import {
   type LeadCaptureFormValues,
   leadCaptureSchema
 } from "@/lib/schemas/configurator-schema";
-import { useConfiguratorStore } from "@/lib/stores/configurator-store";
+import {
+  defaultRoomDetails,
+  useConfiguratorStore
+} from "@/lib/stores/configurator-store";
 
 const contactFields = [
   {
@@ -59,7 +68,13 @@ const contactFields = [
 ] as const;
 
 export function LeadCaptureForm() {
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const setLeadDetails = useConfiguratorStore((state) => state.setLeadDetails);
+  const setLocalSubmissionMessage = useConfiguratorStore(
+    (state) => state.setLocalSubmissionMessage
+  );
+  const roomDetails = useConfiguratorStore((state) => state.roomDetails);
+  const selectedProducts = useConfiguratorStore((state) => state.selectedProducts);
   const localSubmissionMessage = useConfiguratorStore(
     (state) => state.localSubmissionMessage
   );
@@ -67,7 +82,7 @@ export function LeadCaptureForm() {
     register,
     control,
     handleSubmit,
-    formState: { errors, isSubmitSuccessful }
+    formState: { errors, isSubmitting, isSubmitSuccessful }
   } = useForm<LeadCaptureFormValues>({
     resolver: zodResolver(leadCaptureSchema),
     defaultValues: {
@@ -81,8 +96,34 @@ export function LeadCaptureForm() {
     }
   });
 
-  const onSubmit = (values: LeadCaptureFormValues) => {
+  const onSubmit = async (values: LeadCaptureFormValues) => {
+    setSubmissionError(null);
+    setLocalSubmissionMessage(null);
     setLeadDetails(values);
+
+    const activeRoomDetails = roomDetails || defaultRoomDetails;
+    const quoteItems =
+      selectedProducts.length > 0
+        ? selectedProducts
+        : calculateProductQuantities(activeRoomDetails);
+    const totals = calculateQuoteTotals(quoteItems);
+
+    try {
+      const result = await createLeadAndQuote({
+        leadDetails: values,
+        roomDetails: activeRoomDetails,
+        quoteItems,
+        totals
+      });
+
+      setLocalSubmissionMessage(result.message);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send quote. Please try again."
+      );
+    }
   };
 
   return (
@@ -204,14 +245,24 @@ export function LeadCaptureForm() {
         </p>
       </div>
 
-      <Button type="submit" className="mt-6 h-12 w-full gap-3 text-base">
+      <Button
+        type="submit"
+        className="mt-6 h-12 w-full gap-3 text-base"
+        disabled={isSubmitting}
+      >
         <Send className="h-4 w-4" />
-        Send Me My Quote
+        {isSubmitting ? "Sending Quote..." : "Send Me My Quote"}
       </Button>
 
       {isSubmitSuccessful && localSubmissionMessage ? (
         <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           {localSubmissionMessage}
+        </p>
+      ) : null}
+
+      {submissionError ? (
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {submissionError}
         </p>
       ) : null}
 

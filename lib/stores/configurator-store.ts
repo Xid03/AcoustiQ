@@ -48,6 +48,7 @@ type ConfiguratorState = {
   setSelectedProducts: (products: QuoteItem[]) => void;
   updateProductQuantity: (productId: string, quantity: number) => void;
   setLeadDetails: (details: LeadDetails) => void;
+  setLocalSubmissionMessage: (message: string | null) => void;
   resetConfigurator: () => void;
 };
 
@@ -78,9 +79,11 @@ export const useConfiguratorStore = create<ConfiguratorState>((set) => ({
     })),
   setLeadDetails: (details) =>
     set({
-      leadDetails: details,
-      localSubmissionMessage:
-        "Quote request saved locally. Backend submission will be added in Step 9."
+      leadDetails: details
+    }),
+  setLocalSubmissionMessage: (message) =>
+    set({
+      localSubmissionMessage: message
     }),
   resetConfigurator: () =>
     set({
