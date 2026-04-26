@@ -2,11 +2,12 @@
 
 import { Copy, ExternalLink, Eye, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ProductEditorPanel } from "@/components/admin/product-editor-panel";
 import { TablePagination } from "@/components/admin/table-pagination";
 import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   Sheet,
   SheetContent,
@@ -132,11 +133,49 @@ function ProductDetailsPanel({ product }: { product: ProductRow }) {
   );
 }
 
-function ProductMoreActions({ product }: { product: ProductRow }) {
+function ProductMoreActions({
+  product,
+  onDeleted
+}: {
+  product: ProductRow;
+  onDeleted?: (productId: string) => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   async function copyToClipboard(value: string, message: string) {
     await navigator.clipboard.writeText(value);
@@ -146,37 +185,46 @@ function ProductMoreActions({ product }: { product: ProductRow }) {
   }
 
   async function deleteProduct() {
+    setIsDeleting(true);
     setErrorMessage(null);
-    setOpen(false);
-
-    const confirmed = window.confirm(
-      `Delete ${product.name}? This action cannot be undone.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
 
     const supabase = createSupabaseClient();
 
     if (!supabase) {
       setErrorMessage("Supabase is not configured. Check .env.local.");
+      setIsDeleting(false);
       return;
     }
 
-    const { error } = await supabase.from("products").delete().eq("id", product.id);
+    const { data, error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", product.id)
+      .select("id");
 
     if (error) {
       setErrorMessage(error.message);
+      setIsDeleting(false);
       return;
     }
 
+    if (!data || data.length === 0) {
+      setErrorMessage(
+        "Product was not deleted in Supabase. Run the delete policy SQL and try again."
+      );
+      setIsDeleting(false);
+      return;
+    }
+
+    setIsDeleting(false);
+    setDeleteDialogOpen(false);
+    onDeleted?.(product.id);
     setSuccessMessage("Product deleted successfully. Refreshing catalog...");
     setSuccessDialogOpen(true);
   }
 
   return (
-    <div className="relative">
+    <div ref={menuRef} className="relative">
       <Button
         variant="outline"
         size="icon"
@@ -214,7 +262,10 @@ function ProductMoreActions({ product }: { product: ProductRow }) {
           <button
             type="button"
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition-colors duration-150 hover:bg-red-50"
-            onClick={deleteProduct}
+            onClick={() => {
+              setOpen(false);
+              setDeleteDialogOpen(true);
+            }}
           >
             <Trash2 className="h-4 w-4" />
             Delete Product
@@ -232,18 +283,28 @@ function ProductMoreActions({ product }: { product: ProductRow }) {
         open={successDialogOpen}
         title="Action Complete"
         message={successMessage}
-        actionLabel="Refresh Catalog"
-        onAction={() => window.location.reload()}
+        actionLabel="Done"
         onOpenChange={setSuccessDialogOpen}
+      />
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        title="Delete Product"
+        description={`Are you sure you want to delete "${product.name}"? This action cannot be undone.`}
+        actionLabel="Delete Product"
+        isLoading={isDeleting}
+        onConfirm={deleteProduct}
+        onOpenChange={setDeleteDialogOpen}
       />
     </div>
   );
 }
 
 export function ProductsTable({
+  onProductDeleted,
   products,
   totalProducts
 }: {
+  onProductDeleted?: (productId: string) => void;
   products: ProductRow[];
   totalProducts?: number;
 }) {
@@ -316,7 +377,10 @@ export function ProductsTable({
                       }
                     />
                     <ProductDetailsPanel product={product} />
-                    <ProductMoreActions product={product} />
+                    <ProductMoreActions
+                      product={product}
+                      onDeleted={onProductDeleted}
+                    />
                   </div>
                 </td>
               </tr>

@@ -77,6 +77,7 @@ function parseJson(text: string): ImportedProduct[] {
 }
 
 export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
+  const [catalogProducts, setCatalogProducts] = useState(products);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [status, setStatus] = useState("All Status");
@@ -86,14 +87,15 @@ export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
   const [successMessage, setSuccessMessage] = useState("");
 
   const categories = useMemo(
-    () => Array.from(new Set(products.map((product) => product.category))).sort(),
-    [products]
+    () =>
+      Array.from(new Set(catalogProducts.map((product) => product.category))).sort(),
+    [catalogProducts]
   );
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return products.filter((product) => {
+    return catalogProducts.filter((product) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         product.name.toLowerCase().includes(normalizedQuery) ||
@@ -105,7 +107,7 @@ export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
 
       return matchesQuery && matchesCategory && matchesStatus;
     });
-  }, [category, products, query, status]);
+  }, [catalogProducts, category, query, status]);
 
   async function handleImport(file: File) {
     setIsImporting(true);
@@ -164,7 +166,15 @@ export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
         onQueryChange={setQuery}
         onStatusChange={setStatus}
       />
-      <ProductsTable products={filteredProducts} totalProducts={products.length} />
+      <ProductsTable
+        products={filteredProducts}
+        totalProducts={catalogProducts.length}
+        onProductDeleted={(productId) =>
+          setCatalogProducts((currentProducts) =>
+            currentProducts.filter((product) => product.id !== productId)
+          )
+        }
+      />
       <SuccessDialog
         open={successDialogOpen}
         title="Products Imported"
