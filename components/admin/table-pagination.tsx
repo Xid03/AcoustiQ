@@ -3,13 +3,17 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type TablePaginationProps = {
+  currentPage?: number;
   label?: string;
   lastPage?: string | number;
+  onPageChange?: (page: number) => void;
 };
 
 export function TablePagination({
+  currentPage = 1,
   label = "Showing 1 to 8 of 128 results",
-  lastPage = "16"
+  lastPage = "16",
+  onPageChange
 }: TablePaginationProps) {
   const pageCount = Number(lastPage);
   const pages =
@@ -28,7 +32,8 @@ export function TablePagination({
           size="icon"
           className="h-9 min-h-9 w-9"
           aria-label="Previous page"
-          disabled={pageCount <= 1}
+          disabled={pageCount <= 1 || currentPage <= 1}
+          onClick={() => onPageChange?.(Math.max(1, currentPage - 1))}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -45,10 +50,11 @@ export function TablePagination({
               key={`${page}-${index}`}
               type="button"
               className={
-                page === "1"
+                page === String(currentPage)
                   ? "h-9 min-w-9 rounded-lg border border-indigo-500 bg-indigo-50 px-3 text-sm font-medium text-indigo-700 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                   : "h-9 min-w-9 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
               }
+              onClick={() => onPageChange?.(Number(page))}
             >
               {page}
             </button>
@@ -59,7 +65,8 @@ export function TablePagination({
           size="icon"
           className="h-9 min-h-9 w-9"
           aria-label="Next page"
-          disabled={pageCount <= 1}
+          disabled={pageCount <= 1 || currentPage >= pageCount}
+          onClick={() => onPageChange?.(Math.min(pageCount, currentPage + 1))}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

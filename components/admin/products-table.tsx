@@ -300,14 +300,25 @@ function ProductMoreActions({
 }
 
 export function ProductsTable({
+  currentPage = 1,
   onProductDeleted,
+  onPageChange,
   products,
+  totalFilteredProducts,
   totalProducts
 }: {
+  currentPage?: number;
   onProductDeleted?: (productId: string) => void;
+  onPageChange?: (page: number) => void;
   products: ProductRow[];
+  totalFilteredProducts?: number;
   totalProducts?: number;
+  totalPages?: number;
 }) {
+  const totalVisible = totalFilteredProducts ?? products.length;
+  const start = totalVisible > 0 ? (currentPage - 1) * 10 + 1 : 0;
+  const end = Math.min(currentPage * 10, totalVisible);
+
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
@@ -399,10 +410,14 @@ export function ProductsTable({
         </table>
       </div>
       <TablePagination
-        label={`Showing ${products.length > 0 ? 1 : 0} to ${products.length} of ${
-          totalProducts ?? products.length
-        } products`}
-        lastPage="1"
+        currentPage={currentPage}
+        label={`Showing ${start} to ${end} of ${totalVisible} products${
+          totalProducts && totalProducts !== totalVisible
+            ? ` (${totalProducts} total)`
+            : ""
+        }`}
+        lastPage={Math.max(1, Math.ceil(totalVisible / 10))}
+        onPageChange={onPageChange}
       />
     </section>
   );

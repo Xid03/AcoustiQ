@@ -3,6 +3,7 @@
 import { Bell, Menu } from "lucide-react";
 
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { SignOutButton } from "@/components/admin/sign-out-button";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -48,6 +49,7 @@ export function AdminHeader() {
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-indigo-100 text-sm font-semibold text-slate-700 ring-2 ring-white">
             JD
           </span>
+          <SignOutButton />
         </div>
       </div>
     </header>

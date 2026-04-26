@@ -41,6 +41,56 @@ export type ProductRow = {
   created_at: string;
 };
 
+export type CompanyRow = {
+  id: string;
+  name: string;
+  brand_name: string;
+  primary_color: string;
+  accent_color: string;
+  quote_prefix: string;
+  support_email: string | null;
+  created_at: string;
+};
+
+export type OrderRow = {
+  id: string;
+  quote_id: string | null;
+  customer_name: string;
+  customer_email: string;
+  total: number;
+  payment_status: "Pending" | "Paid" | "Failed" | "Refunded";
+  fulfillment_status: "New" | "Processing" | "Completed" | "Cancelled";
+  created_at: string;
+};
+
+export type QuoteEmailEventRow = {
+  id: string;
+  quote_id: string;
+  event_type: string;
+  recipient_email: string;
+  status: "pending" | "sent" | "failed";
+  created_at: string;
+};
+
+export type CheckoutSessionRow = {
+  id: string;
+  quote_id: string | null;
+  provider: string;
+  provider_session_id: string | null;
+  status: "created" | "paid" | "expired" | "failed";
+  amount: number;
+  currency: string;
+  checkout_url: string | null;
+  created_at: string;
+};
+
+export type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  role: "admin" | "manager" | "viewer";
+  created_at: string;
+};
+
 export type QuoteRow = {
   id: string;
   lead_id: string;
@@ -98,6 +148,50 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<ProductRow>;
+        Relationships: [];
+      };
+      companies: {
+        Row: CompanyRow;
+        Insert: Omit<CompanyRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<CompanyRow>;
+        Relationships: [];
+      };
+      orders: {
+        Row: OrderRow;
+        Insert: Omit<OrderRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<OrderRow>;
+        Relationships: [];
+      };
+      quote_email_events: {
+        Row: QuoteEmailEventRow;
+        Insert: Omit<QuoteEmailEventRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<QuoteEmailEventRow>;
+        Relationships: [];
+      };
+      checkout_sessions: {
+        Row: CheckoutSessionRow;
+        Insert: Omit<CheckoutSessionRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<CheckoutSessionRow>;
+        Relationships: [];
+      };
+      profiles: {
+        Row: ProfileRow;
+        Insert: Omit<ProfileRow, "created_at"> & {
+          created_at?: string;
+        };
+        Update: Partial<ProfileRow>;
         Relationships: [];
       };
       quotes: {

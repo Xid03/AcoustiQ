@@ -1,5 +1,44 @@
 create extension if not exists "pgcrypto";
 
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  role text not null default 'viewer' check (role in ('admin', 'manager', 'viewer')),
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  insert into public.profiles (id, full_name, role)
+  values (new.id, new.raw_user_meta_data->>'full_name', 'viewer')
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+    and role in ('admin', 'manager')
+  );
+$$;
+
 create table if not exists public.companies (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -95,6 +134,29 @@ create table if not exists public.quote_email_events (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  quote_id uuid references public.quotes(id) on delete set null,
+  customer_name text not null,
+  customer_email text not null,
+  total numeric(10, 2) not null,
+  payment_status text not null default 'Pending' check (payment_status in ('Pending', 'Paid', 'Failed', 'Refunded')),
+  fulfillment_status text not null default 'New' check (fulfillment_status in ('New', 'Processing', 'Completed', 'Cancelled')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.checkout_sessions (
+  id uuid primary key default gen_random_uuid(),
+  quote_id uuid references public.quotes(id) on delete cascade,
+  provider text not null default 'manual',
+  provider_session_id text,
+  status text not null default 'created' check (status in ('created', 'paid', 'expired', 'failed')),
+  amount numeric(10, 2) not null,
+  currency text not null default 'MYR',
+  checkout_url text,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.queue_quote_email_event()
 returns trigger
 language plpgsql
@@ -136,27 +198,56 @@ alter table public.leads enable row level security;
 alter table public.quotes enable row level security;
 alter table public.quote_items enable row level security;
 alter table public.quote_email_events enable row level security;
+alter table public.orders enable row level security;
+alter table public.checkout_sessions enable row level security;
+alter table public.profiles enable row level security;
 
+drop policy if exists "Users can read own profile" on public.profiles;
+create policy "Users can read own profile"
+on public.profiles for select
+using (id = auth.uid() or public.is_admin());
+
+drop policy if exists "Admins can update profiles" on public.profiles;
+create policy "Admins can update profiles"
+on public.profiles for update
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins can read companies" on public.companies;
+create policy "Admins can read companies"
+on public.companies for select
+using (public.is_admin());
+
+drop policy if exists "Admins can update companies" on public.companies;
+create policy "Admins can update companies"
+on public.companies for update
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins can read products" on public.products;
 drop policy if exists "Public can read products" on public.products;
-create policy "Public can read products"
+create policy "Admins can read products"
 on public.products for select
-using (true);
+using (public.is_admin());
 
+drop policy if exists "Admins can create products" on public.products;
 drop policy if exists "Public can create products" on public.products;
-create policy "Public can create products"
+create policy "Admins can create products"
 on public.products for insert
-with check (true);
+with check (public.is_admin());
 
+drop policy if exists "Admins can update products" on public.products;
 drop policy if exists "Public can update products" on public.products;
-create policy "Public can update products"
+create policy "Admins can update products"
 on public.products for update
-using (true)
-with check (true);
+using (public.is_admin())
+with check (public.is_admin());
 
+drop policy if exists "Admins can delete products" on public.products;
 drop policy if exists "Public can delete products" on public.products;
-create policy "Public can delete products"
+create policy "Admins can delete products"
 on public.products for delete
-using (true);
+using (public.is_admin());
 
 drop policy if exists "Public can create leads" on public.leads;
 create policy "Public can create leads"
@@ -173,24 +264,57 @@ create policy "Public can create quote items"
 on public.quote_items for insert
 with check (true);
 
+drop policy if exists "Admins can read leads" on public.leads;
 drop policy if exists "Public can read lead overview" on public.leads;
-create policy "Public can read lead overview"
+create policy "Admins can read leads"
 on public.leads for select
-using (true);
+using (public.is_admin());
 
+drop policy if exists "Admins can read quotes" on public.quotes;
 drop policy if exists "Public can read quotes" on public.quotes;
-create policy "Public can read quotes"
+create policy "Admins can read quotes"
 on public.quotes for select
-using (true);
+using (public.is_admin());
 
+drop policy if exists "Admins can read quote email events" on public.quote_email_events;
 drop policy if exists "Public can read quote email events" on public.quote_email_events;
-create policy "Public can read quote email events"
+create policy "Admins can read quote email events"
 on public.quote_email_events for select
-using (true);
+using (public.is_admin());
+
+drop policy if exists "Admins can read quote items" on public.quote_items;
+create policy "Admins can read quote items"
+on public.quote_items for select
+using (public.is_admin());
+
+drop policy if exists "Admins can read orders" on public.orders;
+create policy "Admins can read orders"
+on public.orders for select
+using (public.is_admin());
+
+drop policy if exists "Admins can manage orders" on public.orders;
+create policy "Admins can manage orders"
+on public.orders for all
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins can read checkout sessions" on public.checkout_sessions;
+create policy "Admins can read checkout sessions"
+on public.checkout_sessions for select
+using (public.is_admin());
+
+drop policy if exists "Public can create checkout sessions" on public.checkout_sessions;
+create policy "Public can create checkout sessions"
+on public.checkout_sessions for insert
+with check (true);
 
 insert into public.companies (id, name, brand_name)
 values ('11111111-1111-1111-1111-111111111111', 'Demo Acoustic Company', 'AcoustiQ')
 on conflict (id) do nothing;
+
+alter table public.companies
+add column if not exists quote_prefix text not null default 'AQ',
+add column if not exists support_email text;
 
 insert into public.products (company_id, name, category, price, unit_label, status, stock, thumbnail_type)
 values
@@ -211,7 +335,11 @@ create policy "Public can read product images"
 on storage.objects for select
 using (bucket_id = 'product-images');
 
+drop policy if exists "Admins can upload product images" on storage.objects;
 drop policy if exists "Public can upload product images" on storage.objects;
-create policy "Public can upload product images"
+create policy "Admins can upload product images"
 on storage.objects for insert
-with check (bucket_id = 'product-images');
+with check (bucket_id = 'product-images' and public.is_admin());
+
+-- After creating your first admin user, promote it with:
+-- update public.profiles set role = 'admin' where id = '<auth-user-id>';

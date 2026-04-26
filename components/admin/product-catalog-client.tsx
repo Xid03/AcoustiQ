@@ -81,6 +81,7 @@ export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [status, setStatus] = useState("All Status");
+  const [page, setPage] = useState(1);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -108,6 +109,28 @@ export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
       return matchesQuery && matchesCategory && matchesStatus;
     });
   }, [catalogProducts, category, query, status]);
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const paginatedProducts = filteredProducts.slice(
+    (Math.min(page, totalPages) - 1) * pageSize,
+    Math.min(page, totalPages) * pageSize
+  );
+
+  function updateQuery(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+
+  function updateCategory(value: string) {
+    setCategory(value);
+    setPage(1);
+  }
+
+  function updateStatus(value: string) {
+    setStatus(value);
+    setPage(1);
+  }
 
   async function handleImport(file: File) {
     setIsImporting(true);
@@ -161,14 +184,18 @@ export function ProductCatalogClient({ products }: { products: ProductRow[] }) {
         isImporting={isImporting}
         query={query}
         status={status}
-        onCategoryChange={setCategory}
+        onCategoryChange={updateCategory}
         onImport={handleImport}
-        onQueryChange={setQuery}
-        onStatusChange={setStatus}
+        onQueryChange={updateQuery}
+        onStatusChange={updateStatus}
       />
       <ProductsTable
-        products={filteredProducts}
+        currentPage={Math.min(page, totalPages)}
+        products={paginatedProducts}
+        totalFilteredProducts={filteredProducts.length}
         totalProducts={catalogProducts.length}
+        totalPages={totalPages}
+        onPageChange={setPage}
         onProductDeleted={(productId) =>
           setCatalogProducts((currentProducts) =>
             currentProducts.filter((product) => product.id !== productId)
