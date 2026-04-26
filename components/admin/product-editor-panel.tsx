@@ -238,12 +238,17 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
 
             <label className="block">
               <span className="text-sm font-medium text-slate-700">Status</span>
-              <Input
+              <select
                 name="status"
                 defaultValue={product?.status || ""}
-                placeholder="Active"
-                className="mt-2 bg-white"
-              />
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 transition-all duration-150 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                <option value="" disabled>
+                  Select status
+                </option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
             </label>
           </div>
 
