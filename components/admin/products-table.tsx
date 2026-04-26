@@ -51,7 +51,13 @@ function ProductThumbnail({
   );
 }
 
-export function ProductsTable({ products }: { products: ProductRow[] }) {
+export function ProductsTable({
+  products,
+  totalProducts
+}: {
+  products: ProductRow[];
+  totalProducts?: number;
+}) {
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
@@ -69,7 +75,8 @@ export function ProductsTable({ products }: { products: ProductRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {products.length > 0 ? (
+              products.map((product) => (
               <tr key={product.id} className="transition-colors duration-100 hover:bg-slate-50/50">
                 <td className="border-b border-slate-100 px-4 py-3.5">
                   <div className="flex items-center gap-3">
@@ -138,12 +145,24 @@ export function ProductsTable({ products }: { products: ProductRow[] }) {
                   </div>
                 </td>
               </tr>
-            ))}
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="border-b border-slate-100 px-4 py-12 text-center text-sm text-slate-500"
+                >
+                  No products match the current search or filters.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
       <TablePagination
-        label={`Showing 1 to ${products.length} of ${products.length} products`}
+        label={`Showing ${products.length > 0 ? 1 : 0} to ${products.length} of ${
+          totalProducts ?? products.length
+        } products`}
         lastPage="1"
       />
     </section>

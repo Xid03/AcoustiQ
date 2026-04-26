@@ -1,8 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 
 import { AdminShell } from "@/components/admin/admin-shell";
-import { ProductsTable } from "@/components/admin/products-table";
-import { ProductsToolbar } from "@/components/admin/products-toolbar";
+import { ProductCatalogClient } from "@/components/admin/product-catalog-client";
 import { getProductsDataSource } from "@/lib/services/quote-service";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +24,7 @@ export default async function AdminProductsPage() {
           </p>
         </div>
 
-        <ProductsToolbar />
-        <ProductsTable products={products} />
+        <ProductCatalogClient products={products} />
       </div>
     </AdminShell>
   );
