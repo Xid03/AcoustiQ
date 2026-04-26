@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Mail, User } from "lucide-react";
+import Image from "next/image";
+import { FileText, Lock, Mail, Users, User, Volume2 } from "lucide-react";
 import { useState } from "react";
 
+import registerBackground from "@/images/backgroundregister.png";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,14 @@ export default function RegisterPage() {
     setSuccessMessage(null);
 
     const supabase = createSupabaseClient();
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmPassword") || "");
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
 
     if (!supabase) {
       setErrorMessage("Supabase is not configured. Check .env.local.");
@@ -29,7 +39,7 @@ export default function RegisterPage() {
 
     const { error } = await supabase.auth.signUp({
       email: String(formData.get("email") || ""),
-      password: String(formData.get("password") || ""),
+      password,
       options: {
         data: {
           full_name: String(formData.get("fullName") || "")
@@ -48,56 +58,153 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl items-center justify-center">
-        <form
-          action={handleSubmit}
-          className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/60 sm:p-10"
-        >
-          <BrandLogo />
-          <h1 className="mt-10 text-2xl font-semibold tracking-tight text-slate-900">
-            Create your account
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Create an admin account for your AcoustiQ workspace.
-          </p>
+    <div className="relative min-h-screen overflow-hidden bg-white">
+      <Image
+        src={registerBackground}
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center opacity-40"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-50/94 via-white/84 to-white/72" />
+      <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-indigo-100/70 to-transparent" />
 
-          <div className="mt-8 space-y-5">
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-[0.55fr_0.45fr]">
+        <section className="hidden px-16 py-10 lg:flex lg:flex-col">
+          <div className="relative z-10">
+            <BrandLogo className="min-h-0" />
+          </div>
+          <div className="relative z-10 flex flex-1 flex-col justify-center pb-24 pl-8 xl:pl-14">
+            <div className="max-w-2xl">
+              <h1 className="text-5xl font-semibold tracking-tight text-slate-900">
+                Create your account
+              </h1>
+              <p className="mt-8 text-xl leading-8 text-slate-600">
+                Join thousands of acoustic professionals who trust AcoustiQ.
+              </p>
+            </div>
+
+            <div className="mt-16 space-y-10">
+              {[
+                {
+                  icon: Volume2,
+                  title: "Powerful Configurator",
+                  description: "Create accurate acoustic solutions in minutes."
+                },
+                {
+                  icon: FileText,
+                  title: "Professional Quotes",
+                  description: "Generate branded PDF quotes instantly."
+                },
+                {
+                  icon: Users,
+                  title: "Lead Management",
+                  description: "Track, manage, and convert more qualified leads."
+                }
+              ].map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <div key={item.title} className="flex gap-6">
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                      <Icon className="h-7 w-7" />
+                    </span>
+                    <div>
+                      <p className="text-xl font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-2 max-w-xl text-lg leading-7 text-slate-500">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="flex min-h-screen items-center justify-center p-8 lg:-translate-x-12 xl:-translate-x-16">
+          <form
+            action={handleSubmit}
+            className="w-full max-w-[620px] rounded-xl bg-white p-10 shadow-xl shadow-slate-200/70"
+          >
+            <div className="text-center">
+              <h2 className="text-4xl font-semibold tracking-tight text-slate-900">
+                Create your account
+              </h2>
+              <p className="mt-5 text-xl text-slate-500">
+                Fill in your details to get started.
+              </p>
+            </div>
+
+            <div className="mt-12 space-y-8">
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Full name</span>
-              <span className="relative mt-2 block">
-                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input name="fullName" required placeholder="John Doe" className="pl-10" />
+              <span className="text-xl font-medium text-slate-700">Full name</span>
+              <span className="relative mt-4 block">
+                <User className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
+                <Input name="fullName" required placeholder="John Doe" className="h-16 pl-16 text-xl" />
               </span>
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Email address</span>
-              <span className="relative mt-2 block">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <span className="text-xl font-medium text-slate-700">Email address</span>
+              <span className="relative mt-4 block">
+                <Mail className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
                 <Input
                   name="email"
                   type="email"
                   required
                   placeholder="you@example.com"
-                  className="pl-10"
+                  className="h-16 pl-16 text-xl"
                 />
               </span>
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Password</span>
-              <span className="relative mt-2 block">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <span className="text-xl font-medium text-slate-700">Password</span>
+              <span className="relative mt-4 block">
+                <Lock className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
                 <Input
                   name="password"
                   type="password"
                   required
                   minLength={8}
                   placeholder="Create a strong password"
-                  className="pl-10"
+                  className="h-16 pl-16 text-xl"
+                />
+              </span>
+            </label>
+            <label className="block">
+              <span className="text-xl font-medium text-slate-700">Confirm password</span>
+              <span className="relative mt-4 block">
+                <Lock className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
+                <Input
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="Confirm your password"
+                  className="h-16 pl-16 text-xl"
                 />
               </span>
             </label>
           </div>
+
+          <label className="mt-10 flex items-center gap-5 text-lg font-medium text-slate-600">
+            <input
+              type="checkbox"
+              required
+              className="h-6 w-6 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              I agree to the{" "}
+              <Link href="#" className="text-indigo-600">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="#" className="text-indigo-600">
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
 
           {errorMessage ? (
             <p className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -110,17 +217,18 @@ export default function RegisterPage() {
             </p>
           ) : null}
 
-          <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
+          <Button type="submit" className="mt-7 h-16 w-full text-xl" disabled={isSubmitting}>
             {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-9 text-center text-xl text-slate-500">
             Already have an account?{" "}
             <Link href="/login" className="font-medium text-indigo-600">
               Sign in
             </Link>
           </p>
-        </form>
+          </form>
+        </section>
       </div>
     </div>
   );

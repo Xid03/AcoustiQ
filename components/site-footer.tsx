@@ -32,7 +32,9 @@ export function SiteFooter() {
   const isWorkspaceRoute =
     pathname.startsWith("/configure") ||
     pathname.startsWith("/quote") ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register");
 
   if (isWorkspaceRoute) {
     return null;
