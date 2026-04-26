@@ -142,6 +142,17 @@ create policy "Public can read products"
 on public.products for select
 using (true);
 
+drop policy if exists "Public can create products" on public.products;
+create policy "Public can create products"
+on public.products for insert
+with check (true);
+
+drop policy if exists "Public can update products" on public.products;
+create policy "Public can update products"
+on public.products for update
+using (true)
+with check (true);
+
 drop policy if exists "Public can create leads" on public.leads;
 create policy "Public can create leads"
 on public.leads for insert

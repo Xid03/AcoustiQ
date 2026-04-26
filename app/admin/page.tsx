@@ -30,7 +30,7 @@ const metrics = [
   },
   {
     title: "Revenue (Est.)",
-    value: "$18,540",
+    value: "RM18,540",
     change: "15.3%",
     icon: DollarSign,
     tone: "emerald" as const

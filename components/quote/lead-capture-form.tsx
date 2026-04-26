@@ -17,6 +17,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { SuccessDialog } from "@/components/ui/success-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   calculateProductQuantities,
@@ -68,6 +69,7 @@ const contactFields = [
 ] as const;
 
 export function LeadCaptureForm() {
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const setLeadDetails = useConfiguratorStore((state) => state.setLeadDetails);
   const setLocalSubmissionMessage = useConfiguratorStore(
@@ -82,7 +84,7 @@ export function LeadCaptureForm() {
     register,
     control,
     handleSubmit,
-    formState: { errors, isSubmitting, isSubmitSuccessful }
+    formState: { errors, isSubmitting }
   } = useForm<LeadCaptureFormValues>({
     resolver: zodResolver(leadCaptureSchema),
     defaultValues: {
@@ -117,6 +119,7 @@ export function LeadCaptureForm() {
       });
 
       setLocalSubmissionMessage(result.message);
+      setSuccessDialogOpen(true);
     } catch (error) {
       setSubmissionError(
         error instanceof Error
@@ -127,6 +130,7 @@ export function LeadCaptureForm() {
   };
 
   return (
+    <>
     <form className="bg-transparent" onSubmit={handleSubmit(onSubmit)}>
       <section aria-labelledby="contact-info-title">
         <h2
@@ -254,12 +258,6 @@ export function LeadCaptureForm() {
         {isSubmitting ? "Sending Quote..." : "Send Me My Quote"}
       </Button>
 
-      {isSubmitSuccessful && localSubmissionMessage ? (
-        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          {localSubmissionMessage}
-        </p>
-      ) : null}
-
       {submissionError ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {submissionError}
@@ -271,5 +269,16 @@ export function LeadCaptureForm() {
         Your information is secure and encrypted
       </p>
     </form>
+    <SuccessDialog
+      open={successDialogOpen}
+      title="Quote Sent Successfully"
+      message={
+        localSubmissionMessage ||
+        "Your quote request has been received. We'll get back to you shortly."
+      }
+      actionLabel="Done"
+      onOpenChange={setSuccessDialogOpen}
+    />
+    </>
   );
 }

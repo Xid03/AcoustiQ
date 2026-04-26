@@ -4,7 +4,7 @@ const benefits = [
   {
     icon: Truck,
     title: "Free Shipping",
-    description: "On orders over $1,500"
+    description: "On orders over RM1,500"
   },
   {
     icon: ShieldCheck,

@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { SuccessDialog } from "@/components/ui/success-dialog";
 import type { ProductRow } from "@/lib/supabase/types";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import {
@@ -24,11 +25,48 @@ type ProductEditorPanelProps = {
   product?: ProductRow;
 };
 
+function parseMoneyInput(value: string | number) {
+  const normalized = String(value).replace(/[^\d.]/g, "");
+  const [whole = "0", ...decimalParts] = normalized.split(".");
+  const parsed = Number(
+    decimalParts.length > 0 ? `${whole}.${decimalParts.join("")}` : whole
+  );
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatMoneyInput(value: string | number) {
+  const parsed = parseMoneyInput(value);
+
+  return parsed > 0 ? `RM${parsed.toFixed(2)}` : "";
+}
+
 export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps) {
+  const [open, setOpen] = useState(false);
+  const [unitPrice, setUnitPrice] = useState(
+    product ? formatMoneyInput(product.price) : ""
+  );
+  const [basePrice, setBasePrice] = useState(
+    product ? formatMoneyInput(product.price) : ""
+  );
+  const [stockQuantity, setStockQuantity] = useState(product?.stock || 0);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isEditing = Boolean(product);
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (nextOpen) {
+      setUnitPrice(product ? formatMoneyInput(product.price) : "");
+      setBasePrice(product ? formatMoneyInput(product.price) : "");
+      setStockQuantity(product?.stock || 0);
+      setStatusMessage(null);
+      setErrorMessage(null);
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -67,7 +105,7 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
         company_id: null,
         name: String(formData.get("name") || "Untitled Product"),
         category: String(formData.get("category") || "Wall Panels"),
-        price: Number(String(formData.get("price") || "0").replace(/[$,]/g, "")),
+        price: parseMoneyInput(String(formData.get("price") || "0")),
         unit_label: String(formData.get("unit_label") || "per panel"),
         status: String(formData.get("status") || "Active") as "Active" | "Inactive",
         stock: Number(formData.get("stock") || 0),
@@ -87,10 +125,10 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
 
       setStatusMessage(
         isEditing
-          ? "Product updated in Supabase. Refreshing catalog..."
-          : "Product saved to Supabase. Refreshing catalog..."
+          ? "Product updated successfully. Refreshing catalog..."
+          : "Product created successfully. Refreshing catalog..."
       );
-      window.setTimeout(() => window.location.reload(), 700);
+      setSuccessDialogOpen(true);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to save product."
@@ -101,7 +139,7 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
   }
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader className="pr-8">
@@ -115,19 +153,98 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
 
         <form action={handleSubmit} className="mt-6 space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              ["Product Name", "name", product?.name || "Acoustic Wall Panel - Wave Wood"],
-              ["Category", "category", product?.category || "Wall Panels"],
-              ["Unit Price", "price", product ? String(product.price) : "$89.00"],
-              ["Unit Label", "unit_label", product?.unit_label || "per panel"],
-              ["Stock Quantity", "stock", product ? String(product.stock) : "152"],
-              ["Status", "status", product?.status || "Active"]
-            ].map(([label, name, value]) => (
-              <label key={label} className="block">
-                <span className="text-sm font-medium text-slate-700">{label}</span>
-                <Input name={name} defaultValue={value} className="mt-2 bg-white" />
-              </label>
-            ))}
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Product Name</span>
+              <Input
+                name="name"
+                defaultValue={product?.name || ""}
+                placeholder="Acoustic Wall Panel - Wave Wood"
+                className="mt-2 bg-white"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Category</span>
+              <Input
+                name="category"
+                defaultValue={product?.category || ""}
+                placeholder="Wall Panels"
+                className="mt-2 bg-white"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Unit Price</span>
+              <Input
+                name="price"
+                value={unitPrice}
+                inputMode="decimal"
+                placeholder="RM89.00"
+                className="mt-2 bg-white font-mono tabular-nums"
+                onChange={(event) => setUnitPrice(event.target.value)}
+                onBlur={() => setUnitPrice((value) => formatMoneyInput(value))}
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Unit Label</span>
+              <Input
+                name="unit_label"
+                defaultValue={product?.unit_label || ""}
+                placeholder="per panel"
+                className="mt-2 bg-white"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Stock Quantity</span>
+              <div className="mt-2 flex overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 min-h-10 rounded-none border-r border-slate-200"
+                  aria-label="Decrease stock quantity"
+                  onClick={() =>
+                    setStockQuantity((quantity) => Math.max(0, quantity - 1))
+                  }
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  name="stock"
+                  value={stockQuantity}
+                  inputMode="numeric"
+                  aria-label="Stock Quantity"
+                  className="h-10 rounded-none border-0 bg-white text-center font-mono tabular-nums shadow-none focus-visible:ring-0"
+                  onChange={(event) =>
+                    setStockQuantity(
+                      Math.max(0, Number(event.target.value.replace(/\D/g, "")) || 0)
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 min-h-10 rounded-none border-l border-slate-200"
+                  aria-label="Increase stock quantity"
+                  onClick={() => setStockQuantity((quantity) => quantity + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Status</span>
+              <Input
+                name="status"
+                defaultValue={product?.status || ""}
+                placeholder="Active"
+                className="mt-2 bg-white"
+              />
+            </label>
           </div>
 
           <label className="block">
@@ -135,7 +252,12 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
               Short Description
             </span>
             <Textarea
-              defaultValue="Premium acoustic treatment panel with refined wood slat finish."
+              defaultValue={
+                product
+                  ? "Premium acoustic treatment panel with refined wood slat finish."
+                  : ""
+              }
+              placeholder="Premium acoustic treatment panel with refined wood slat finish."
               className="mt-2"
             />
           </label>
@@ -146,9 +268,12 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
             </span>
             <select
               name="thumbnail_type"
-              defaultValue={product?.thumbnail_type || "wood"}
+              defaultValue={product?.thumbnail_type || ""}
               className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 transition-all duration-150 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
+              <option value="" disabled>
+                Select fallback style
+              </option>
               {["wood", "oak", "cloud", "baffle", "corner", "bass"].map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -187,16 +312,30 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
             </h3>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {[
-                ["Base Price", "$89.00"],
-                ["Bulk Threshold", "24"],
-                ["Bulk Discount %", "8"]
-              ].map(([label, value]) => (
+                ["Base Price", product ? String(product.price) : "", "RM89.00"],
+                ["Bulk Threshold", "", "24"],
+                ["Bulk Discount %", "", "8"]
+              ].map(([label, value, placeholder]) => (
                 <label key={label} className="block">
                   <span className="text-xs font-medium text-slate-600">{label}</span>
-                  <Input
-                    defaultValue={value}
-                    className="mt-2 bg-white font-mono tabular-nums"
-                  />
+                  {label === "Base Price" ? (
+                    <Input
+                      value={basePrice}
+                      inputMode="decimal"
+                      placeholder={placeholder}
+                      className="mt-2 bg-white font-mono tabular-nums"
+                      onChange={(event) => setBasePrice(event.target.value)}
+                      onBlur={() =>
+                        setBasePrice((value) => formatMoneyInput(value))
+                      }
+                    />
+                  ) : (
+                    <Input
+                      defaultValue={value}
+                      placeholder={placeholder}
+                      className="mt-2 bg-white font-mono tabular-nums"
+                    />
+                  )}
                 </label>
               ))}
             </div>
@@ -205,12 +344,6 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
               Installation Eligible
             </label>
           </section>
-
-          {statusMessage ? (
-            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-              {statusMessage}
-            </p>
-          ) : null}
 
           {errorMessage ? (
             <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -233,6 +366,19 @@ export function ProductEditorPanel({ trigger, product }: ProductEditorPanelProps
             </Button>
           </div>
         </form>
+        <SuccessDialog
+          open={successDialogOpen}
+          title={isEditing ? "Product Updated" : "Product Created"}
+          message={
+            statusMessage ||
+            (isEditing
+              ? "Product updated successfully."
+              : "Product created successfully.")
+          }
+          actionLabel="View Catalog"
+          onAction={() => window.location.reload()}
+          onOpenChange={setSuccessDialogOpen}
+        />
       </SheetContent>
     </Sheet>
   );
