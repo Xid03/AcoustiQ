@@ -153,6 +153,11 @@ on public.products for update
 using (true)
 with check (true);
 
+drop policy if exists "Public can delete products" on public.products;
+create policy "Public can delete products"
+on public.products for delete
+using (true);
+
 drop policy if exists "Public can create leads" on public.leads;
 create policy "Public can create leads"
 on public.leads for insert

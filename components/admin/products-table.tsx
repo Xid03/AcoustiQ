@@ -1,12 +1,23 @@
 "use client";
 
-import { Eye, MoreVertical, Pencil } from "lucide-react";
+import { Copy, ExternalLink, Eye, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
 
 import { ProductEditorPanel } from "@/components/admin/product-editor-panel";
 import { TablePagination } from "@/components/admin/table-pagination";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from "@/components/ui/sheet";
+import { SuccessDialog } from "@/components/ui/success-dialog";
 import { formatCurrency } from "@/lib/calculations/acoustic-calculations";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import type { ProductRow } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +59,184 @@ function ProductThumbnail({
         />
       )}
     </span>
+  );
+}
+
+function ProductDetailsPanel({ product }: { product: ProductRow }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
+          aria-label={`View ${product.name}`}
+        >
+          <Eye className="h-3.5 w-3.5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader className="pr-8">
+          <SheetTitle>Product Details</SheetTitle>
+          <SheetDescription>
+            Review catalog information and image status for this product.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-6">
+          <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <ProductThumbnail
+              imageUrl={product.image_url}
+              name={product.name}
+              type={product.thumbnail_type}
+            />
+            <div className="min-w-0">
+              <h3 className="truncate text-lg font-medium tracking-tight text-slate-900">
+                {product.name}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">{product.category}</p>
+            </div>
+          </div>
+
+          <dl className="grid gap-4 sm:grid-cols-2">
+            {[
+              ["Price", formatCurrency(product.price)],
+              ["Unit", product.unit_label],
+              ["Status", product.status],
+              ["Stock", product.stock.toLocaleString()],
+              ["Fallback", product.thumbnail_type],
+              ["Product ID", product.id]
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-slate-200 bg-white p-4">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {label}
+                </dt>
+                <dd className="mt-2 break-words text-sm font-medium text-slate-900">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Image URL
+            </p>
+            <p className="mt-2 break-all text-sm text-slate-700">
+              {product.image_url || "No image URL saved. Showing fallback thumbnail."}
+            </p>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ProductMoreActions({ product }: { product: ProductRow }) {
+  const [open, setOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  async function copyToClipboard(value: string, message: string) {
+    await navigator.clipboard.writeText(value);
+    setSuccessMessage(message);
+    setSuccessDialogOpen(true);
+    setOpen(false);
+  }
+
+  async function deleteProduct() {
+    setErrorMessage(null);
+    setOpen(false);
+
+    const confirmed = window.confirm(
+      `Delete ${product.name}? This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const supabase = createSupabaseClient();
+
+    if (!supabase) {
+      setErrorMessage("Supabase is not configured. Check .env.local.");
+      return;
+    }
+
+    const { error } = await supabase.from("products").delete().eq("id", product.id);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setSuccessMessage("Product deleted successfully. Refreshing catalog...");
+    setSuccessDialogOpen(true);
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
+        aria-expanded={open}
+        aria-label={`More actions for ${product.name}`}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <MoreVertical className="h-3.5 w-3.5" />
+      </Button>
+
+      {open ? (
+        <div className="absolute right-0 top-10 z-20 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/70">
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-900"
+            onClick={() => copyToClipboard(product.id, "Product ID copied.")}
+          >
+            <Copy className="h-4 w-4 text-slate-400" />
+            Copy Product ID
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!product.image_url}
+            onClick={() =>
+              product.image_url
+                ? copyToClipboard(product.image_url, "Image URL copied.")
+                : undefined
+            }
+          >
+            <ExternalLink className="h-4 w-4 text-slate-400" />
+            Copy Image URL
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition-colors duration-150 hover:bg-red-50"
+            onClick={deleteProduct}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Product
+          </button>
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <p className="absolute right-0 top-10 z-30 w-64 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 shadow-lg">
+          {errorMessage}
+        </p>
+      ) : null}
+
+      <SuccessDialog
+        open={successDialogOpen}
+        title="Action Complete"
+        message={successMessage}
+        actionLabel="Refresh Catalog"
+        onAction={() => window.location.reload()}
+        onOpenChange={setSuccessDialogOpen}
+      />
+    </div>
   );
 }
 
@@ -126,22 +315,8 @@ export function ProductsTable({
                         </Button>
                       }
                     />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
-                      aria-label={`View ${product.name}`}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 min-h-8 w-8 border-slate-200 bg-white text-slate-500"
-                      aria-label={`More actions for ${product.name}`}
-                    >
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </Button>
+                    <ProductDetailsPanel product={product} />
+                    <ProductMoreActions product={product} />
                   </div>
                 </td>
               </tr>
