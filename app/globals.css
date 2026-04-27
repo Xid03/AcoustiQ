@@ -68,11 +68,30 @@
   :focus-visible {
     @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-white;
   }
+
+  @keyframes login-progress {
+    0% {
+      transform: translateX(-110%);
+    }
+
+    55% {
+      transform: translateX(80%);
+    }
+
+    100% {
+      transform: translateX(220%);
+    }
+  }
 }
 
 @layer components {
   .skip-link {
     @apply sr-only fixed left-4 top-4 z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white focus:not-sr-only;
+  }
+
+  .login-progress-bar {
+    animation: login-progress 1.05s ease-in-out infinite;
+    box-shadow: 0 0 18px rgb(79 70 229 / 0.45);
   }
 }
 

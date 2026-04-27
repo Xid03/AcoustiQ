@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
+import { AddProductDialog } from "@/components/configurator/add-product-dialog";
 import { EmptyConfiguratorState } from "@/components/configurator/empty-configurator-state";
 import { PerformanceCard } from "@/components/configurator/performance-card";
 import { QuoteBenefitsRow } from "@/components/configurator/quote-benefits-row";
@@ -20,28 +21,257 @@ import {
   calculateRecommendedCoverage,
   calculateFloorArea
 } from "@/lib/calculations/acoustic-calculations";
-import { useConfiguratorStore } from "@/lib/stores/configurator-store";
+import { getProducts } from "@/lib/services/quote-service";
+import { useConfiguratorStore, type RoomDetails } from "@/lib/stores/configurator-store";
+import type { ProductRow } from "@/lib/supabase/types";
+
+const PRODUCT_CATEGORY_PRIORITY = {
+  wall: "Wall Panels",
+  ceiling: "Ceiling Panels",
+  bass: "Bass Traps"
+} as const;
+
+function quantityLabelFromUnit(unitLabel: string) {
+  const normalized = unitLabel.toLowerCase();
+
+  if (normalized.includes("panel")) {
+    return "panels";
+  }
+
+  if (normalized.includes("unit")) {
+    return "units";
+  }
+
+  return unitLabel.replace(/^per\s+/i, "") || unitLabel;
+}
+
+function splitProductName(name: string, category: string) {
+  const [productName, ...variantParts] = name.split(" - ");
+
+  return {
+    productName: productName.trim(),
+    variant: variantParts.join(" - ").trim() || category
+  };
+}
+
+function scoreProductForRoom(product: ProductRow, roomDetails: RoomDetails) {
+  const name = product.name.toLowerCase();
+  let score = 0;
+
+  if (roomDetails.roomType === "Conference Room") {
+    if (name.includes("linear") || name.includes("oak")) score += 8;
+    if (name.includes("wave")) score += 4;
+  }
+
+  if (roomDetails.roomType === "Home Studio") {
+    if (name.includes("pro")) score += 8;
+    if (name.includes("baffle") || name.includes("bass") || name.includes("corner")) score += 5;
+  }
+
+  if (roomDetails.roomType === "Office") {
+    if (name.includes("wave") || name.includes("cloud")) score += 8;
+    if (name.includes("linear")) score += 4;
+  }
+
+  if (roomDetails.ceilingType === "Hard Ceiling") {
+    if (name.includes("cloud")) score += 8;
+    if (name.includes("baffle")) score += 4;
+  }
+
+  if (roomDetails.ceilingType === "Open Ceiling") {
+    if (name.includes("baffle")) score += 10;
+  }
+
+  if (roomDetails.floorType === "Hard Floor") {
+    if (name.includes("cloud") || name.includes("baffle")) score += 3;
+  }
+
+  if (roomDetails.windows === "Large") {
+    if (name.includes("wave") || name.includes("linear")) score += 4;
+  }
+
+  return score;
+}
+
+function pickBestProduct(
+  products: ProductRow[],
+  category: ProductRow["category"],
+  roomDetails: RoomDetails,
+  preferredWords: string[]
+) {
+  const candidates = products.filter(
+    (product) => product.status === "Active" && product.category === category
+  );
+
+  return candidates
+    .map((product) => {
+      const name = product.name.toLowerCase();
+      const keywordScore = preferredWords.reduce(
+        (score, word) => score + (name.includes(word) ? 12 : 0),
+        0
+      );
+
+      return {
+        product,
+        score: keywordScore + scoreProductForRoom(product, roomDetails)
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.product.price - b.product.price)[0]
+    ?.product;
+}
+
+function findCatalogProduct(
+  fallbackProduct: ReturnType<typeof calculateProductQuantities>[number],
+  products: ProductRow[],
+  roomDetails: RoomDetails
+) {
+  if (fallbackProduct.thumbnail === "wood") {
+    const preferredWords =
+      roomDetails.roomType === "Conference Room"
+        ? ["linear", "oak"]
+        : roomDetails.roomType === "Home Studio"
+          ? ["wave", "pro"]
+          : ["wave", "wood"];
+
+    return pickBestProduct(
+      products,
+      PRODUCT_CATEGORY_PRIORITY.wall,
+      roomDetails,
+      preferredWords
+    );
+  }
+
+  if (fallbackProduct.thumbnail === "cloud") {
+    const preferredWords =
+      roomDetails.ceilingType === "Open Ceiling" ? ["baffle"] : ["cloud"];
+
+    return pickBestProduct(
+      products,
+      PRODUCT_CATEGORY_PRIORITY.ceiling,
+      roomDetails,
+      preferredWords
+    );
+  }
+
+  const preferredWords =
+    roomDetails.roomType === "Home Studio" || roomDetails.floorType === "Hard Floor"
+      ? ["corner", "pro"]
+      : ["panel", "pro"];
+
+  return pickBestProduct(
+    products,
+    PRODUCT_CATEGORY_PRIORITY.bass,
+    roomDetails,
+    preferredWords
+  );
+}
 
 export default function ResultsPage() {
   const roomDetails = useConfiguratorStore((state) => state.roomDetails);
   const selectedProducts = useConfiguratorStore((state) => state.selectedProducts);
+  const hasProductSelection = useConfiguratorStore((state) => state.hasProductSelection);
+  const addSelectedProduct = useConfiguratorStore((state) => state.addSelectedProduct);
   const setSelectedProducts = useConfiguratorStore(
     (state) => state.setSelectedProducts
   );
   const updateProductQuantity = useConfiguratorStore(
     (state) => state.updateProductQuantity
   );
+  const [catalogProducts, setCatalogProducts] = useState<ProductRow[]>([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const initializedRecommendationKey = useRef<string | null>(null);
 
-  const recommendedProducts = useMemo(
-    () => (roomDetails ? calculateProductQuantities(roomDetails) : []),
-    [roomDetails]
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCatalogProducts() {
+      const products = await getProducts();
+
+      if (mounted) {
+        setCatalogProducts(products);
+        setCatalogLoaded(true);
+      }
+    }
+
+    void loadCatalogProducts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const recommendedProducts = useMemo(() => {
+    if (!roomDetails) {
+      return [];
+    }
+
+    const calculatedProducts = calculateProductQuantities(roomDetails);
+
+    return calculatedProducts.map((fallbackProduct) => {
+      const catalogProduct = findCatalogProduct(
+        fallbackProduct,
+        catalogProducts,
+        roomDetails
+      );
+
+      if (!catalogProduct) {
+        return fallbackProduct;
+      }
+
+      const { productName, variant } = splitProductName(
+        catalogProduct.name,
+        catalogProduct.category
+      );
+
+      return {
+        ...fallbackProduct,
+        id: catalogProduct.id,
+        productName,
+        variant,
+        unitLabel: quantityLabelFromUnit(catalogProduct.unit_label),
+        unitPrice: Number(catalogProduct.price),
+        thumbnail: catalogProduct.thumbnail_type,
+        imageUrl: catalogProduct.image_url
+      };
+    });
+  }, [catalogProducts, roomDetails]);
+
+  const recommendationKey = useMemo(
+    () =>
+      recommendedProducts
+        .map((product) =>
+          [
+            product.id,
+            product.productName,
+            product.variant,
+            product.unitPrice,
+            product.thumbnail,
+            product.imageUrl
+          ].join(":")
+        )
+        .join("|"),
+    [recommendedProducts]
   );
 
   useEffect(() => {
-    if (roomDetails && selectedProducts.length === 0) {
+    if (
+      roomDetails &&
+      recommendationKey &&
+      catalogLoaded &&
+      !hasProductSelection &&
+      initializedRecommendationKey.current !== recommendationKey
+    ) {
+      initializedRecommendationKey.current = recommendationKey;
       setSelectedProducts(recommendedProducts);
     }
-  }, [recommendedProducts, roomDetails, selectedProducts.length, setSelectedProducts]);
+  }, [
+    catalogLoaded,
+    hasProductSelection,
+    recommendationKey,
+    recommendedProducts,
+    roomDetails,
+    setSelectedProducts
+  ]);
 
   if (!roomDetails) {
     return (
@@ -53,7 +283,7 @@ export default function ResultsPage() {
     );
   }
 
-  const products = selectedProducts.length > 0 ? selectedProducts : recommendedProducts;
+  const products = hasProductSelection ? selectedProducts : recommendedProducts;
   const totals = calculateQuoteTotals(products);
   const floorArea = calculateFloorArea(roomDetails.length, roomDetails.width);
   const coverage = calculateRecommendedCoverage(
@@ -79,7 +309,7 @@ export default function ResultsPage() {
                   <ArrowLeft className="h-4 w-4" />
                 </Link>
               </Button>
-              <StepProgress currentStep={3} />
+              <StepProgress currentStep={2} />
             </div>
             <Button asChild variant="outline" className="text-xs">
               <Link href="/configure">Edit Room Details</Link>
@@ -98,6 +328,11 @@ export default function ResultsPage() {
                 for better acoustics.
               </p>
             </div>
+            <AddProductDialog
+              products={catalogProducts}
+              selectedProductIds={products.map((product) => product.id)}
+              onAddProduct={addSelectedProduct}
+            />
           </div>
 
           <div className="mt-7 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_260px] xl:grid-cols-[230px_minmax(0,1fr)_280px]">

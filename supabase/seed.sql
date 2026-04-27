@@ -226,9 +226,15 @@ with check (public.is_admin());
 
 drop policy if exists "Admins can read products" on public.products;
 drop policy if exists "Public can read products" on public.products;
+drop policy if exists "Public can read active products" on public.products;
 create policy "Admins can read products"
 on public.products for select
 using (public.is_admin());
+
+create policy "Public can read active products"
+on public.products for select
+to anon, authenticated
+using (status = 'Active');
 
 drop policy if exists "Admins can create products" on public.products;
 drop policy if exists "Public can create products" on public.products;
@@ -252,16 +258,19 @@ using (public.is_admin());
 drop policy if exists "Public can create leads" on public.leads;
 create policy "Public can create leads"
 on public.leads for insert
+to anon, authenticated
 with check (true);
 
 drop policy if exists "Public can create quotes" on public.quotes;
 create policy "Public can create quotes"
 on public.quotes for insert
+to anon, authenticated
 with check (true);
 
 drop policy if exists "Public can create quote items" on public.quote_items;
 create policy "Public can create quote items"
 on public.quote_items for insert
+to anon, authenticated
 with check (true);
 
 drop policy if exists "Admins can read leads" on public.leads;
@@ -306,7 +315,15 @@ using (public.is_admin());
 drop policy if exists "Public can create checkout sessions" on public.checkout_sessions;
 create policy "Public can create checkout sessions"
 on public.checkout_sessions for insert
+to anon, authenticated
 with check (true);
+
+grant usage on schema public to anon, authenticated;
+grant insert on public.leads to anon, authenticated;
+grant insert on public.quotes to anon, authenticated;
+grant insert on public.quote_items to anon, authenticated;
+grant insert on public.checkout_sessions to anon, authenticated;
+grant select on public.products to anon, authenticated;
 
 insert into public.companies (id, name, brand_name)
 values ('11111111-1111-1111-1111-111111111111', 'Demo Acoustic Company', 'AcoustiQ')

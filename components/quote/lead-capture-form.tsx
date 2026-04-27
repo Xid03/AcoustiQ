@@ -77,6 +77,7 @@ export function LeadCaptureForm() {
   );
   const roomDetails = useConfiguratorStore((state) => state.roomDetails);
   const selectedProducts = useConfiguratorStore((state) => state.selectedProducts);
+  const hasProductSelection = useConfiguratorStore((state) => state.hasProductSelection);
   const localSubmissionMessage = useConfiguratorStore(
     (state) => state.localSubmissionMessage
   );
@@ -105,7 +106,7 @@ export function LeadCaptureForm() {
 
     const activeRoomDetails = roomDetails || defaultRoomDetails;
     const quoteItems =
-      selectedProducts.length > 0
+      hasProductSelection
         ? selectedProducts
         : calculateProductQuantities(activeRoomDetails);
     const totals = calculateQuoteTotals(quoteItems);

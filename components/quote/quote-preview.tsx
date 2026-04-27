@@ -21,9 +21,10 @@ export function QuotePreview() {
   const roomDetails =
     useConfiguratorStore((state) => state.roomDetails) ?? defaultRoomDetails;
   const storedProducts = useConfiguratorStore((state) => state.selectedProducts);
+  const hasProductSelection = useConfiguratorStore((state) => state.hasProductSelection);
   const leadDetails = useConfiguratorStore((state) => state.leadDetails);
   const quoteItems =
-    storedProducts.length > 0
+    hasProductSelection
       ? storedProducts
       : calculateProductQuantities(roomDetails);
   const totals = calculateQuoteTotals(quoteItems);

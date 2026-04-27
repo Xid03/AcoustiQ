@@ -1,10 +1,32 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/calculations/acoustic-calculations";
 import type { QuoteItem } from "@/lib/stores/configurator-store";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus } from "lucide-react";
 
-function ProductThumbnail({ type }: { type: string }) {
+function ProductThumbnail({
+  imageUrl,
+  type
+}: {
+  imageUrl?: string | null;
+  type: string;
+}) {
+  if (imageUrl) {
+    return (
+      <span className="relative flex h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="56px"
+          className="object-cover"
+        />
+      </span>
+    );
+  }
+
   return (
     <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
       <span
@@ -14,7 +36,11 @@ function ProductThumbnail({ type }: { type: string }) {
             "bg-[repeating-linear-gradient(90deg,#9a6a3d_0_4px,#c79b6d_4px_8px,#5b3d25_8px_10px)]",
           type === "cloud" &&
             "bg-[radial-gradient(circle_at_30%_35%,#f8fafc_0_16%,transparent_17%),radial-gradient(circle_at_70%_35%,#e2e8f0_0_16%,transparent_17%),radial-gradient(circle_at_45%_70%,#d6d3d1_0_18%,transparent_19%)] bg-white",
-          type === "bass" && "bg-gradient-to-r from-slate-950 via-slate-800 to-slate-950"
+          type === "baffle" &&
+            "bg-gradient-to-br from-slate-800 via-slate-950 to-slate-700",
+          type === "corner" &&
+            "bg-gradient-to-r from-slate-950 via-slate-800 to-slate-950",
+          type === "bass" && "bg-gradient-to-r from-zinc-950 via-zinc-800 to-zinc-950"
         )}
       />
     </span>
@@ -50,14 +76,18 @@ export function RecommendedProductsTable({
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {products.length > 0 ? (
+              products.map((product) => (
               <tr
                 key={product.id}
                 className="border-b border-slate-100 transition-colors duration-100 hover:bg-slate-50/50"
               >
                 <td className="border-b border-slate-100 px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <ProductThumbnail type={product.thumbnail} />
+                    <ProductThumbnail
+                      imageUrl={product.imageUrl}
+                      type={product.thumbnail}
+                    />
                     <div>
                       <p className="text-sm font-semibold tracking-tight text-slate-900">
                         {product.productName}
@@ -114,7 +144,17 @@ export function RecommendedProductsTable({
                   {formatCurrency(product.quantity * product.unitPrice)}
                 </td>
               </tr>
-            ))}
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="border-b border-slate-100 px-4 py-12 text-center text-sm text-slate-500"
+                >
+                  No products selected. Use Add Product to include items in this quote.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

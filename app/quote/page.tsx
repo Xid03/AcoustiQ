@@ -35,14 +35,14 @@ export default function QuotePage() {
                 size="icon"
                 className="h-10 min-h-10 w-10 shrink-0"
               >
-                <Link href="/configure/results" aria-label="Back to results">
+                <Link href="/configure/results" aria-label="Back to products">
                   <ArrowLeft className="h-4 w-4" />
                 </Link>
               </Button>
               <StepProgress currentStep={3} />
             </div>
             <Button asChild variant="outline" className="text-xs">
-              <Link href="/configure/results">Back to Results</Link>
+              <Link href="/configure/results">Back to Products</Link>
             </Button>
           </div>
         </header>
@@ -57,7 +57,7 @@ export default function QuotePage() {
               >
                 <Link href="/configure/results">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Results
+                  Back to Products
                 </Link>
               </Button>
               <h1 className="text-3xl font-semibold tracking-tight text-slate-900">

@@ -26,7 +26,8 @@ export type QuoteItem = {
   quantity: number;
   unitLabel: string;
   unitPrice: number;
-  thumbnail: "wood" | "cloud" | "bass";
+  thumbnail: "wood" | "oak" | "cloud" | "baffle" | "corner" | "bass";
+  imageUrl?: string | null;
 };
 
 export type LeadDetails = {
@@ -42,10 +43,12 @@ export type LeadDetails = {
 type ConfiguratorState = {
   roomDetails: RoomDetails | null;
   selectedProducts: QuoteItem[];
+  hasProductSelection: boolean;
   leadDetails: LeadDetails | null;
   localSubmissionMessage: string | null;
   setRoomDetails: (details: RoomDetails) => void;
   setSelectedProducts: (products: QuoteItem[]) => void;
+  addSelectedProduct: (product: QuoteItem) => void;
   updateProductQuantity: (productId: string, quantity: number) => void;
   setLeadDetails: (details: LeadDetails) => void;
   setLocalSubmissionMessage: (message: string | null) => void;
@@ -65,18 +68,52 @@ export const defaultRoomDetails: RoomDetails = {
 export const useConfiguratorStore = create<ConfiguratorState>((set) => ({
   roomDetails: null,
   selectedProducts: [],
+  hasProductSelection: false,
   leadDetails: null,
   localSubmissionMessage: null,
-  setRoomDetails: (details) => set({ roomDetails: details }),
-  setSelectedProducts: (products) => set({ selectedProducts: products }),
+  setRoomDetails: (details) =>
+    set({ roomDetails: details, selectedProducts: [], hasProductSelection: false }),
+  setSelectedProducts: (products) =>
+    set({ selectedProducts: products, hasProductSelection: true }),
+  addSelectedProduct: (product) =>
+    set((state) => {
+      const existingProduct = state.selectedProducts.find(
+        (selectedProduct) => selectedProduct.id === product.id
+      );
+
+      if (existingProduct) {
+        return {
+          hasProductSelection: true,
+          selectedProducts: state.selectedProducts.map((selectedProduct) =>
+            selectedProduct.id === product.id
+              ? {
+                  ...selectedProduct,
+                  quantity: selectedProduct.quantity + product.quantity
+                }
+              : selectedProduct
+          )
+        };
+      }
+
+      return {
+        hasProductSelection: true,
+        selectedProducts: [...state.selectedProducts, product]
+      };
+    }),
   updateProductQuantity: (productId, quantity) =>
-    set((state) => ({
-      selectedProducts: state.selectedProducts.map((product) =>
-        product.id === productId
-          ? { ...product, quantity: Math.max(0, quantity) }
-          : product
-      )
-    })),
+    set((state) => {
+      const nextProducts =
+        quantity <= 0
+          ? state.selectedProducts.filter((product) => product.id !== productId)
+          : state.selectedProducts.map((product) =>
+              product.id === productId ? { ...product, quantity } : product
+            );
+
+      return {
+        hasProductSelection: true,
+        selectedProducts: nextProducts
+      };
+    }),
   setLeadDetails: (details) =>
     set({
       leadDetails: details
@@ -89,6 +126,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set) => ({
     set({
       roomDetails: null,
       selectedProducts: [],
+      hasProductSelection: false,
       leadDetails: null,
       localSubmissionMessage: null
     })

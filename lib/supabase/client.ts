@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/types";
 
@@ -21,13 +22,5 @@ export function createSupabaseClient(): SupabaseClient<Database> | null {
     return null;
   }
 
-  return createClient<Database>(supabaseUrl, supabaseClientKey, {
-    global: {
-      fetch: (input, init) =>
-        fetch(input, {
-          ...init,
-          cache: "no-store"
-        })
-    }
-  });
+  return createBrowserClient<Database>(supabaseUrl, supabaseClientKey);
 }

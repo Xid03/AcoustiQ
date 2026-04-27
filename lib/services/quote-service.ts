@@ -229,6 +229,19 @@ function createQuoteNumber() {
   return `AQ-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+function createRecordId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+    (
+      Number(character) ^
+      (Math.random() * 16) >> (Number(character) / 4)
+    ).toString(16)
+  );
+}
+
 export async function createLeadAndQuote(input: CreateLeadQuoteInput) {
   const supabase = createSupabaseClient();
 
@@ -242,10 +255,13 @@ export async function createLeadAndQuote(input: CreateLeadQuoteInput) {
   }
 
   const { leadDetails, quoteItems, roomDetails, totals } = input;
+  const leadId = createRecordId();
+  const quoteId = createRecordId();
 
-  const { data: lead, error: leadError } = await supabase
+  const { error: leadError } = await supabase
     .from("leads")
     .insert({
+      id: leadId,
       company_id: null,
       full_name: leadDetails.fullName,
       email: leadDetails.email,
@@ -257,18 +273,17 @@ export async function createLeadAndQuote(input: CreateLeadQuoteInput) {
       status: "New",
       marketing_consent: leadDetails.marketingConsent,
       notes: leadDetails.additionalNotes || null
-    })
-    .select("id")
-    .single();
+    });
 
-  if (leadError || !lead) {
+  if (leadError) {
     throw new Error(leadError?.message || "Unable to create lead.");
   }
 
-  const { data: quote, error: quoteError } = await supabase
+  const { error: quoteError } = await supabase
     .from("quotes")
     .insert({
-      lead_id: lead.id,
+      id: quoteId,
+      lead_id: leadId,
       quote_number: createQuoteNumber(),
       room_details: roomDetails,
       subtotal: totals.subtotal,
@@ -276,17 +291,15 @@ export async function createLeadAndQuote(input: CreateLeadQuoteInput) {
       tax: totals.tax,
       total: totals.total,
       status: "Sent"
-    })
-    .select("id")
-    .single();
+    });
 
-  if (quoteError || !quote) {
+  if (quoteError) {
     throw new Error(quoteError?.message || "Unable to create quote.");
   }
 
   const { error: itemsError } = await supabase.from("quote_items").insert(
     quoteItems.map((item) => ({
-      quote_id: quote.id,
+      quote_id: quoteId,
       product_name: item.productName,
       variant: item.variant,
       placement: item.placement,

@@ -35,7 +35,7 @@ export function MetricCard({
         </span>
       </div>
       <p className="mt-3 text-xs font-medium text-emerald-600">
-        ↑ {change} from last 7 days
+        + {change} from last 7 days
       </p>
     </section>
   );

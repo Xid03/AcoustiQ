@@ -1,25 +1,25 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-const metrics = [
-  ["Draft", "12"],
-  ["Sent", "42"],
-  ["Viewed", "18"],
-  ["Accepted", "8"]
-];
+type QuoteOverviewCardProps = {
+  metrics: Array<{
+    label: string;
+    value: number;
+  }>;
+};
 
-export function QuoteOverviewCard() {
+export function QuoteOverviewCard({ metrics }: QuoteOverviewCardProps) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold tracking-tight text-slate-800">
         Quotes Overview
       </h2>
       <div className="mt-6 grid grid-cols-2 gap-5">
-        {metrics.map(([label, value]) => (
-          <div key={label}>
-            <p className="text-xs text-slate-500">{label}</p>
+        {metrics.map((metric) => (
+          <div key={metric.label}>
+            <p className="text-xs text-slate-500">{metric.label}</p>
             <p className="mt-2 font-mono text-2xl font-semibold tabular-nums text-slate-900">
-              {value}
+              {metric.value}
             </p>
           </div>
         ))}
