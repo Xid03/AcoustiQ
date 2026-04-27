@@ -1,5 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { CompanyRow, OrderRow } from "@/lib/supabase/types";
+import type {
+  CompanyRow,
+  LeadWithQuote,
+  OrderRow,
+  ProductRow,
+  ProfileRow
+} from "@/lib/supabase/types";
 
 export const fallbackCompany: CompanyRow = {
   id: "11111111-1111-1111-1111-111111111111",
@@ -12,46 +18,78 @@ export const fallbackCompany: CompanyRow = {
   created_at: "2024-05-01T00:00:00.000Z"
 };
 
-export const fallbackOrders: OrderRow[] = [
-  {
-    id: "ord-001",
-    quote_id: null,
-    customer_name: "Sarah Johnson",
-    customer_email: "sarah@acme.com",
-    total: 4030.4,
-    payment_status: "Pending",
-    fulfillment_status: "New",
-    created_at: "2024-05-20T09:00:00.000Z"
-  },
-  {
-    id: "ord-002",
-    quote_id: null,
-    customer_name: "Michael Brown",
-    customer_email: "michael@soundwave.com",
-    total: 2156,
-    payment_status: "Paid",
-    fulfillment_status: "Processing",
-    created_at: "2024-05-20T10:30:00.000Z"
-  }
-];
-
 export async function getCompanySettings() {
-  try {
-    const supabase = createSupabaseServerClient();
-    const { data, error } = await supabase
-      .from("companies")
-      .select("*")
-      .limit(1)
-      .single();
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("*")
+    .limit(1)
+    .single();
 
-    if (error || !data) {
+  if (error) {
+    if (error.code === "PGRST116") {
       return fallbackCompany;
     }
 
-    return data as CompanyRow;
-  } catch {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
     return fallbackCompany;
   }
+
+  return data as CompanyRow;
+}
+
+export async function getTeamMembers() {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("avatar_url,created_at,email,full_name,id,role")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return {
+      currentUserId: user?.id || null,
+      members: [] as ProfileRow[]
+    };
+  }
+
+  return {
+    currentUserId: user?.id || null,
+    members: (data || []) as ProfileRow[]
+  };
+}
+
+export async function getAdminProducts() {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error || !data) {
+    return [] as ProductRow[];
+  }
+
+  return data as ProductRow[];
+}
+
+export async function getAdminLeadsWithQuotes() {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_quote_overview")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return [] as LeadWithQuote[];
+  }
+
+  return data as unknown as LeadWithQuote[];
 }
 
 export async function getOrders() {
@@ -63,11 +101,11 @@ export async function getOrders() {
       .order("created_at", { ascending: false });
 
     if (error || !data) {
-      return fallbackOrders;
+      return [] as OrderRow[];
     }
 
     return data as OrderRow[];
   } catch {
-    return fallbackOrders;
+    return [] as OrderRow[];
   }
 }

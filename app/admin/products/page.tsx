@@ -2,7 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ProductCatalogClient } from "@/components/admin/product-catalog-client";
-import { getProductsDataSource } from "@/lib/services/quote-service";
+import { getAdminProducts } from "@/lib/services/admin-service";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,7 +10,7 @@ export const revalidate = 0;
 export default async function AdminProductsPage() {
   noStore();
 
-  const { products } = await getProductsDataSource();
+  const products = await getAdminProducts();
 
   return (
     <AdminShell>

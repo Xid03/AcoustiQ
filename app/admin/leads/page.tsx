@@ -1,12 +1,11 @@
 import { AdminShell } from "@/components/admin/admin-shell";
-import { LeadsTable } from "@/components/admin/leads-table";
-import { LeadsToolbar } from "@/components/admin/leads-toolbar";
-import { getLeadsWithQuotes } from "@/lib/services/quote-service";
+import { LeadsManagementClient } from "@/components/admin/leads-management-client";
+import { getAdminLeadsWithQuotes } from "@/lib/services/admin-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeadsPage() {
-  const leads = await getLeadsWithQuotes();
+  const leads = await getAdminLeadsWithQuotes();
 
   return (
     <AdminShell>
@@ -20,8 +19,7 @@ export default async function AdminLeadsPage() {
           </p>
         </div>
 
-        <LeadsToolbar />
-        <LeadsTable leads={leads} />
+        <LeadsManagementClient leads={leads} />
       </div>
     </AdminShell>
   );

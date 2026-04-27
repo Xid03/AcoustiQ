@@ -1,12 +1,16 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { SettingsForm } from "@/components/admin/settings-form";
-import { getCompanySettings } from "@/lib/services/admin-service";
+import { TeamMembersPanel } from "@/components/admin/team-members-panel";
+import { getCompanySettings, getTeamMembers } from "@/lib/services/admin-service";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminSettingsPage() {
-  const company = await getCompanySettings();
+  const [company, team] = await Promise.all([
+    getCompanySettings(),
+    getTeamMembers()
+  ]);
 
   return (
     <AdminShell>
@@ -20,6 +24,10 @@ export default async function AdminSettingsPage() {
           </p>
         </div>
         <SettingsForm company={company} />
+        <TeamMembersPanel
+          currentUserId={team.currentUserId}
+          members={team.members}
+        />
       </div>
     </AdminShell>
   );

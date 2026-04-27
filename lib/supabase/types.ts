@@ -87,6 +87,8 @@ export type CheckoutSessionRow = {
 export type ProfileRow = {
   id: string;
   full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
   role: "admin" | "manager" | "viewer";
   created_at: string;
 };

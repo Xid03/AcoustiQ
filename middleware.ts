@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+import { canAccessAdminPath } from "@/lib/auth/rbac";
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseClientKey =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
@@ -39,6 +41,23 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (request.nextUrl.pathname.startsWith("/admin") && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = profile?.role || "viewer";
+
+    if (!canAccessAdminPath(role, request.nextUrl.pathname)) {
+      const deniedUrl = request.nextUrl.clone();
+      deniedUrl.pathname = "/admin/access-denied";
+      deniedUrl.searchParams.set("from", request.nextUrl.pathname);
+      return NextResponse.redirect(deniedUrl);
+    }
   }
 
   if ((request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") && user) {

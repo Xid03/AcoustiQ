@@ -3,9 +3,15 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
+  email text,
+  avatar_url text,
   role text not null default 'viewer' check (role in ('admin', 'manager', 'viewer')),
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles
+add column if not exists email text,
+add column if not exists avatar_url text;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -13,8 +19,8 @@ language plpgsql
 security definer
 as $$
 begin
-  insert into public.profiles (id, full_name, role)
-  values (new.id, new.raw_user_meta_data->>'full_name', 'viewer')
+  insert into public.profiles (id, full_name, email, role)
+  values (new.id, new.raw_user_meta_data->>'full_name', new.email, 'viewer')
   on conflict (id) do nothing;
   return new;
 end;
@@ -35,9 +41,43 @@ as $$
     select 1
     from public.profiles
     where id = auth.uid()
+    and role = 'admin'
+  );
+$$;
+
+create or replace function public.is_staff()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
     and role in ('admin', 'manager')
   );
 $$;
+
+create or replace function public.prevent_non_admin_role_changes()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.role is distinct from old.role and not public.is_admin() then
+    raise exception 'Only admins can change user roles.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists prevent_non_admin_role_changes on public.profiles;
+create trigger prevent_non_admin_role_changes
+before update on public.profiles
+for each row execute function public.prevent_non_admin_role_changes();
 
 create table if not exists public.companies (
   id uuid primary key default gen_random_uuid(),
@@ -213,6 +253,12 @@ on public.profiles for update
 using (public.is_admin())
 with check (public.is_admin());
 
+drop policy if exists "Users can update own profile" on public.profiles;
+create policy "Users can update own profile"
+on public.profiles for update
+using (id = auth.uid())
+with check (id = auth.uid());
+
 drop policy if exists "Admins can read companies" on public.companies;
 create policy "Admins can read companies"
 on public.companies for select
@@ -229,7 +275,7 @@ drop policy if exists "Public can read products" on public.products;
 drop policy if exists "Public can read active products" on public.products;
 create policy "Admins can read products"
 on public.products for select
-using (public.is_admin());
+using (public.is_staff());
 
 create policy "Public can read active products"
 on public.products for select
@@ -240,20 +286,20 @@ drop policy if exists "Admins can create products" on public.products;
 drop policy if exists "Public can create products" on public.products;
 create policy "Admins can create products"
 on public.products for insert
-with check (public.is_admin());
+with check (public.is_staff());
 
 drop policy if exists "Admins can update products" on public.products;
 drop policy if exists "Public can update products" on public.products;
 create policy "Admins can update products"
 on public.products for update
-using (public.is_admin())
-with check (public.is_admin());
+using (public.is_staff())
+with check (public.is_staff());
 
 drop policy if exists "Admins can delete products" on public.products;
 drop policy if exists "Public can delete products" on public.products;
 create policy "Admins can delete products"
 on public.products for delete
-using (public.is_admin());
+using (public.is_staff());
 
 drop policy if exists "Public can create leads" on public.leads;
 create policy "Public can create leads"
@@ -277,40 +323,51 @@ drop policy if exists "Admins can read leads" on public.leads;
 drop policy if exists "Public can read lead overview" on public.leads;
 create policy "Admins can read leads"
 on public.leads for select
-using (public.is_admin());
+using (public.is_staff());
+
+drop policy if exists "Admins can update leads" on public.leads;
+create policy "Admins can update leads"
+on public.leads for update
+using (public.is_staff())
+with check (public.is_staff());
+
+drop policy if exists "Admins can delete leads" on public.leads;
+create policy "Admins can delete leads"
+on public.leads for delete
+using (public.is_staff());
 
 drop policy if exists "Admins can read quotes" on public.quotes;
 drop policy if exists "Public can read quotes" on public.quotes;
 create policy "Admins can read quotes"
 on public.quotes for select
-using (public.is_admin());
+using (public.is_staff());
 
 drop policy if exists "Admins can read quote email events" on public.quote_email_events;
 drop policy if exists "Public can read quote email events" on public.quote_email_events;
 create policy "Admins can read quote email events"
 on public.quote_email_events for select
-using (public.is_admin());
+using (public.is_staff());
 
 drop policy if exists "Admins can read quote items" on public.quote_items;
 create policy "Admins can read quote items"
 on public.quote_items for select
-using (public.is_admin());
+using (public.is_staff());
 
 drop policy if exists "Admins can read orders" on public.orders;
 create policy "Admins can read orders"
 on public.orders for select
-using (public.is_admin());
+using (public.is_staff());
 
 drop policy if exists "Admins can manage orders" on public.orders;
 create policy "Admins can manage orders"
 on public.orders for all
-using (public.is_admin())
-with check (public.is_admin());
+using (public.is_staff())
+with check (public.is_staff());
 
 drop policy if exists "Admins can read checkout sessions" on public.checkout_sessions;
 create policy "Admins can read checkout sessions"
 on public.checkout_sessions for select
-using (public.is_admin());
+using (public.is_staff());
 
 drop policy if exists "Public can create checkout sessions" on public.checkout_sessions;
 create policy "Public can create checkout sessions"
@@ -320,10 +377,18 @@ with check (true);
 
 grant usage on schema public to anon, authenticated;
 grant insert on public.leads to anon, authenticated;
+grant update, delete on public.leads to authenticated;
 grant insert on public.quotes to anon, authenticated;
 grant insert on public.quote_items to anon, authenticated;
 grant insert on public.checkout_sessions to anon, authenticated;
 grant select on public.products to anon, authenticated;
+grant select, update on public.profiles to authenticated;
+
+update public.profiles
+set email = auth.users.email
+from auth.users
+where public.profiles.id = auth.users.id
+and public.profiles.email is null;
 
 insert into public.companies (id, name, brand_name)
 values ('11111111-1111-1111-1111-111111111111', 'Demo Acoustic Company', 'AcoustiQ')
@@ -347,6 +412,10 @@ insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public)
+values ('profile-avatars', 'profile-avatars', true)
+on conflict (id) do nothing;
+
 drop policy if exists "Public can read product images" on storage.objects;
 create policy "Public can read product images"
 on storage.objects for select
@@ -356,7 +425,34 @@ drop policy if exists "Admins can upload product images" on storage.objects;
 drop policy if exists "Public can upload product images" on storage.objects;
 create policy "Admins can upload product images"
 on storage.objects for insert
-with check (bucket_id = 'product-images' and public.is_admin());
+with check (bucket_id = 'product-images' and public.is_staff());
+
+drop policy if exists "Public can read profile avatars" on storage.objects;
+create policy "Public can read profile avatars"
+on storage.objects for select
+using (bucket_id = 'profile-avatars');
+
+drop policy if exists "Users can upload own profile avatars" on storage.objects;
+create policy "Users can upload own profile avatars"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+drop policy if exists "Users can update own profile avatars" on storage.objects;
+create policy "Users can update own profile avatars"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+)
+with check (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
 
 -- After creating your first admin user, promote it with:
 -- update public.profiles set role = 'admin' where id = '<auth-user-id>';
