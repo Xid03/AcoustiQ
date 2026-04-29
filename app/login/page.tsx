@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Eye, FileText, Lock, Mail, Users, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import registerBackground from "@/images/backgroundregister.png";
 import { BrandLogo } from "@/components/brand-logo";
@@ -13,6 +13,22 @@ import { Input } from "@/components/ui/input";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+    </div>
+  );
+}
+
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirectedFrom = searchParams.get("redirectedFrom") || "/admin";
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
