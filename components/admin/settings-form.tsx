@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SuccessDialog } from "@/components/ui/success-dialog";
+import { cacheBrandSettings } from "@/lib/hooks/use-brand-settings";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import type { CompanyRow } from "@/lib/supabase/types";
 
@@ -25,16 +26,18 @@ export function SettingsForm({ company }: { company: CompanyRow }) {
       return;
     }
 
+    const nextSettings = {
+      name: String(formData.get("name") || ""),
+      brand_name: String(formData.get("brand_name") || ""),
+      primary_color: String(formData.get("primary_color") || "#4f46e5"),
+      accent_color: String(formData.get("accent_color") || "#10b981"),
+      quote_prefix: String(formData.get("quote_prefix") || "AQ").toUpperCase(),
+      support_email: String(formData.get("support_email") || "")
+    };
+
     const { error } = await supabase
       .from("companies")
-      .update({
-        name: String(formData.get("name") || ""),
-        brand_name: String(formData.get("brand_name") || ""),
-        primary_color: String(formData.get("primary_color") || "#4f46e5"),
-        accent_color: String(formData.get("accent_color") || "#10b981"),
-        quote_prefix: String(formData.get("quote_prefix") || "AQ"),
-        support_email: String(formData.get("support_email") || "")
-      })
+      .update(nextSettings)
       .eq("id", company.id);
 
     if (error) {
@@ -44,6 +47,7 @@ export function SettingsForm({ company }: { company: CompanyRow }) {
     }
 
     setIsSaving(false);
+    cacheBrandSettings(nextSettings);
     setSuccessOpen(true);
   }
 

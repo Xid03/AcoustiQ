@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { AdminNotifications } from "@/components/admin/admin-notifications";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 import { Button } from "@/components/ui/button";
@@ -101,14 +102,7 @@ export function AdminHeader() {
         <div className="hidden lg:block" />
 
         <div className="ml-auto flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 min-h-10 w-10 text-slate-500"
-            aria-label="View notifications"
-          >
-            <Bell className="h-4 w-4" />
-          </Button>
+          <AdminNotifications />
           <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-indigo-100 text-sm font-semibold text-slate-700 ring-2 ring-white">
             {profile.avatarUrl ? (
               <Image

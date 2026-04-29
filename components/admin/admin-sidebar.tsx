@@ -174,7 +174,7 @@ export function AdminSidebar() {
 
       <div className="space-y-4 border-t border-slate-100 p-4">
         <Link
-          href="#"
+          href="/admin/support"
           className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
           <CircleHelp className="h-4 w-4" />

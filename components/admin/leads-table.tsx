@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Copy, Mail, MoreVertical, Trash2 } from "lucide-react";
+import { Copy, Mail, MoreVertical, ShoppingCart, Trash2 } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ type LeadsTableProps = {
   leads: LeadWithQuote[];
   totalFilteredLeads: number;
   totalPages: number;
+  onCreateOrder: (lead: LeadWithQuote) => Promise<void>;
   onDeleteLead: (leadId: string) => Promise<void>;
   onPageChange: (page: number) => void;
   onStatusChange: (leadId: string, status: LeadRow["status"]) => Promise<void>;
@@ -40,10 +41,12 @@ type LeadsTableProps = {
 
 function LeadActions({
   lead,
+  onCreateOrder,
   onDeleteLead,
   onStatusChange
 }: {
   lead: LeadWithQuote;
+  onCreateOrder: (lead: LeadWithQuote) => Promise<void>;
   onDeleteLead: (leadId: string) => Promise<void>;
   onStatusChange: (leadId: string, status: LeadRow["status"]) => Promise<void>;
 }) {
@@ -116,6 +119,18 @@ function LeadActions({
               Copy Email
             </button>
             <div className="my-1 border-t border-slate-100" />
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition-colors duration-150 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!lead.quote_id || !lead.quote_value}
+              onClick={() => {
+                void onCreateOrder(lead);
+                setOpen(false);
+              }}
+            >
+              <ShoppingCart className="h-4 w-4 text-slate-400" />
+              Create Order
+            </button>
             <label className="block px-3 py-2">
               <span className="text-xs font-medium text-slate-500">Update Status</span>
               <select
@@ -175,6 +190,7 @@ export function LeadsTable({
   leads,
   totalFilteredLeads,
   totalPages,
+  onCreateOrder,
   onDeleteLead,
   onPageChange,
   onStatusChange
@@ -252,6 +268,7 @@ export function LeadsTable({
                   <td className="border-b border-slate-100 px-4 py-3.5">
                     <LeadActions
                       lead={lead}
+                      onCreateOrder={onCreateOrder}
                       onDeleteLead={onDeleteLead}
                       onStatusChange={onStatusChange}
                     />

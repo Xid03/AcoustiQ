@@ -24,6 +24,10 @@
     --input: 214 32% 91%;
     --ring: 239 84% 67%;
     --radius: 0.75rem;
+    --brand-primary: #4f46e5;
+    --brand-primary-hover: color-mix(in srgb, var(--brand-primary) 88%, #0f172a);
+    --brand-accent: #10b981;
+    --brand-accent-soft: color-mix(in srgb, var(--brand-accent) 12%, white);
   }
 
   .dark {

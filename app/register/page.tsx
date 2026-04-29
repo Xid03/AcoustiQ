@@ -9,9 +9,11 @@ import registerBackground from "@/images/backgroundregister.png";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useBrandSettings } from "@/lib/hooks/use-brand-settings";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
+  const brandSettings = useBrandSettings();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,7 +83,8 @@ export default function RegisterPage() {
                 Create your account
               </h1>
               <p className="mt-8 text-xl leading-8 text-slate-600">
-                Join thousands of acoustic professionals who trust AcoustiQ.
+                Join thousands of acoustic professionals who trust{" "}
+                {brandSettings.brand_name}.
               </p>
             </div>
 

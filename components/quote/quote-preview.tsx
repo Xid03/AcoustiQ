@@ -4,6 +4,7 @@ import { FileDown } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
+import { useBrandSettings } from "@/lib/hooks/use-brand-settings";
 import {
   calculateFloorArea,
   calculateProductQuantities,
@@ -18,6 +19,7 @@ import {
 import { generateQuotePdf } from "@/lib/pdf/generate-quote-pdf";
 
 export function QuotePreview() {
+  const brandSettings = useBrandSettings();
   const roomDetails =
     useConfiguratorStore((state) => state.roomDetails) ?? defaultRoomDetails;
   const storedProducts = useConfiguratorStore((state) => state.selectedProducts);
@@ -34,6 +36,7 @@ export function QuotePreview() {
     roomDetails.width,
     roomDetails.height
   );
+  const previewQuoteNumber = `${brandSettings.quote_prefix}-${new Date().getFullYear()}-0567`;
 
   return (
     <aside className="rounded-xl border border-slate-300 bg-slate-100 p-5 shadow-sm shadow-slate-200/70 sm:p-6">
@@ -49,7 +52,9 @@ export function QuotePreview() {
               leadDetails,
               quoteItems,
               roomDetails,
-              totals
+              totals,
+              brandSettings,
+              quoteNumber: previewQuoteNumber
             });
           }}
         >
@@ -67,8 +72,8 @@ export function QuotePreview() {
             </p>
           </div>
           <div className="shrink-0 text-right text-xs leading-5 text-slate-500">
-            <p>Quote #AQ-2024-0567</p>
-            <p>May 20, 2024</p>
+            <p>Quote #{previewQuoteNumber}</p>
+            <p>{new Date().toLocaleDateString("en-US")}</p>
           </div>
         </div>
 
@@ -76,7 +81,10 @@ export function QuotePreview() {
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <p className="text-xs font-medium text-slate-500">Prepared For:</p>
-              <p className="mt-2 text-sm font-semibold text-indigo-700">
+              <p
+                className="mt-2 text-sm font-semibold"
+                style={{ color: brandSettings.primary_color }}
+              >
                 {leadDetails?.fullName || "John Doe"}
               </p>
               <p className="mt-1 text-sm text-slate-700">
@@ -174,7 +182,7 @@ export function QuotePreview() {
 
         <div className="mt-6 border-t border-slate-200 pt-8 text-center">
           <p className="text-sm font-semibold tracking-tight text-slate-900">
-            Thank you for choosing AcoustiQ.
+            Thank you for choosing {brandSettings.brand_name}.
           </p>
           <p className="mt-1 text-xs text-slate-500">
             We&apos;ll get back to you shortly!

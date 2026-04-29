@@ -29,6 +29,10 @@ export function canAccessAdminPath(role: string | null | undefined, pathname: st
     return Boolean(role);
   }
 
+  if (pathname === "/admin/support" || pathname.startsWith("/admin/support/")) {
+    return Boolean(role);
+  }
+
   if (pathname === "/admin/settings" || pathname.startsWith("/admin/settings/")) {
     return isAdminRole(role);
   }

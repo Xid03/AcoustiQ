@@ -8,11 +8,17 @@ import type {
   QuoteItem,
   RoomDetails
 } from "@/lib/stores/configurator-store";
+import {
+  type BrandSettings,
+  normalizeBrandSettings
+} from "@/lib/branding/brand-settings";
 import type { QuoteTotals } from "@/lib/supabase/types";
 
 type GenerateQuotePdfInput = {
+  brandSettings?: BrandSettings;
   leadDetails: LeadDetails | null;
   quoteItems: QuoteItem[];
+  quoteNumber?: string;
   roomDetails: RoomDetails;
   totals: QuoteTotals;
 };
@@ -22,11 +28,17 @@ function textOrFallback(value: string | undefined, fallback: string) {
 }
 
 export async function generateQuotePdf({
+  brandSettings,
   leadDetails,
   quoteItems,
+  quoteNumber,
   roomDetails,
   totals
 }: GenerateQuotePdfInput) {
+  const normalizedBrandSettings = normalizeBrandSettings(brandSettings);
+  const normalizedQuoteNumber =
+    quoteNumber ||
+    `${normalizedBrandSettings.quote_prefix}-${new Date().getFullYear()}-0567`;
   const { jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -42,7 +54,7 @@ export async function generateQuotePdf({
   pdf.setTextColor("#0f172a");
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(20);
-  pdf.text("AcoustiQ", margin, 64);
+  pdf.text(normalizedBrandSettings.brand_name, margin, 64);
 
   pdf.setFontSize(12);
   pdf.text("Acoustic Treatment Quote", margin, 90);
@@ -50,7 +62,7 @@ export async function generateQuotePdf({
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   pdf.setTextColor("#475569");
-  pdf.text("Quote #AQ-2024-0567", right, 64, { align: "right" });
+  pdf.text(`Quote #${normalizedQuoteNumber}`, right, 64, { align: "right" });
   pdf.text(new Date().toLocaleDateString("en-US"), right, 80, { align: "right" });
 
   pdf.setDrawColor("#e2e8f0");
@@ -64,7 +76,7 @@ export async function generateQuotePdf({
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(11);
-  pdf.setTextColor("#4338ca");
+  pdf.setTextColor(normalizedBrandSettings.primary_color);
   pdf.text(textOrFallback(leadDetails?.fullName, "John Doe"), margin, 168);
 
   pdf.setFont("helvetica", "normal");
@@ -152,7 +164,7 @@ export async function generateQuotePdf({
   pdf.text(formatCurrency(totals.total), valueX, y + 12, { align: "right" });
 
   pdf.setFontSize(10);
-  pdf.text("Thank you for choosing AcoustiQ.", pageWidth / 2, 760, {
+  pdf.text(`Thank you for choosing ${normalizedBrandSettings.brand_name}.`, pageWidth / 2, 760, {
     align: "center"
   });
   pdf.setFont("helvetica", "normal");
@@ -162,5 +174,5 @@ export async function generateQuotePdf({
     align: "center"
   });
 
-  pdf.save("acoustiq-quote.pdf");
+  pdf.save(`${normalizedBrandSettings.brand_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-quote.pdf`);
 }

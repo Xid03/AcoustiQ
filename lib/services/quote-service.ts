@@ -1,4 +1,8 @@
 import { createSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  fallbackBrandSettings,
+  normalizeBrandSettings
+} from "@/lib/branding/brand-settings";
 import type {
   CreateLeadQuoteInput,
   LeadWithQuote,
@@ -20,6 +24,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: true,
     notes: null,
     created_at: "2024-05-20T09:00:00.000Z",
+    quote_id: "quote-acme",
     quote_value: 4030.4,
     quote_number: "AQ-2024-0567"
   },
@@ -37,6 +42,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: true,
     notes: null,
     created_at: "2024-05-20T10:30:00.000Z",
+    quote_id: "quote-soundwave",
     quote_value: 2156,
     quote_number: "AQ-2024-0568"
   },
@@ -54,6 +60,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: true,
     notes: null,
     created_at: "2024-05-19T14:20:00.000Z",
+    quote_id: "quote-horizon",
     quote_value: 5090,
     quote_number: "AQ-2024-0569"
   },
@@ -71,6 +78,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: true,
     notes: null,
     created_at: "2024-05-19T16:45:00.000Z",
+    quote_id: "quote-nextgen",
     quote_value: 3420,
     quote_number: "AQ-2024-0570"
   },
@@ -88,6 +96,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: false,
     notes: null,
     created_at: "2024-05-18T11:10:00.000Z",
+    quote_id: null,
     quote_value: null,
     quote_number: null
   },
@@ -105,6 +114,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: true,
     notes: null,
     created_at: "2024-05-18T12:15:00.000Z",
+    quote_id: "quote-bright",
     quote_value: 6250,
     quote_number: "AQ-2024-0571"
   },
@@ -122,6 +132,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: false,
     notes: null,
     created_at: "2024-05-17T09:30:00.000Z",
+    quote_id: "quote-elite",
     quote_value: 1980,
     quote_number: "AQ-2024-0572"
   },
@@ -139,6 +150,7 @@ export const fallbackLeads: LeadWithQuote[] = [
     marketing_consent: true,
     notes: null,
     created_at: "2024-05-17T13:00:00.000Z",
+    quote_id: "quote-visionary",
     quote_value: 2760,
     quote_number: "AQ-2024-0573"
   }
@@ -225,8 +237,10 @@ export const fallbackProducts: ProductRow[] = [
   }
 ];
 
-function createQuoteNumber() {
-  return `AQ-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+function createQuoteNumber(prefix = fallbackBrandSettings.quote_prefix) {
+  const normalizedPrefix = prefix.trim().toUpperCase() || fallbackBrandSettings.quote_prefix;
+
+  return `${normalizedPrefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 function createRecordId() {
@@ -257,6 +271,12 @@ export async function createLeadAndQuote(input: CreateLeadQuoteInput) {
   const { leadDetails, quoteItems, roomDetails, totals } = input;
   const leadId = createRecordId();
   const quoteId = createRecordId();
+  const { data: companySettings } = await supabase
+    .from("companies")
+    .select("quote_prefix")
+    .limit(1)
+    .maybeSingle();
+  const quotePrefix = normalizeBrandSettings(companySettings).quote_prefix;
 
   const { error: leadError } = await supabase
     .from("leads")
@@ -284,7 +304,7 @@ export async function createLeadAndQuote(input: CreateLeadQuoteInput) {
     .insert({
       id: quoteId,
       lead_id: leadId,
-      quote_number: createQuoteNumber(),
+      quote_number: createQuoteNumber(quotePrefix),
       room_details: roomDetails,
       subtotal: totals.subtotal,
       shipping: totals.shipping,

@@ -228,7 +228,8 @@ create or replace view public.lead_quote_overview as
 select
   leads.*,
   quotes.total as quote_value,
-  quotes.quote_number
+  quotes.quote_number,
+  quotes.id as quote_id
 from public.leads
 left join public.quotes on quotes.lead_id = leads.id;
 
@@ -260,9 +261,11 @@ using (id = auth.uid())
 with check (id = auth.uid());
 
 drop policy if exists "Admins can read companies" on public.companies;
-create policy "Admins can read companies"
+drop policy if exists "Public can read companies" on public.companies;
+create policy "Public can read companies"
 on public.companies for select
-using (public.is_admin());
+to anon, authenticated
+using (true);
 
 drop policy if exists "Admins can update companies" on public.companies;
 create policy "Admins can update companies"
@@ -381,7 +384,12 @@ grant update, delete on public.leads to authenticated;
 grant insert on public.quotes to anon, authenticated;
 grant insert on public.quote_items to anon, authenticated;
 grant insert on public.checkout_sessions to anon, authenticated;
+grant select on public.companies to anon, authenticated;
 grant select on public.products to anon, authenticated;
+grant select on public.leads to authenticated;
+grant select on public.quotes to authenticated;
+grant select, update on public.quote_email_events to authenticated;
+grant select, insert, update, delete on public.orders to authenticated;
 grant select, update on public.profiles to authenticated;
 
 update public.profiles

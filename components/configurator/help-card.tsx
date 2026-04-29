@@ -1,8 +1,13 @@
+"use client";
+
 import { UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useBrandSettings } from "@/lib/hooks/use-brand-settings";
 
 export function HelpCard() {
+  const brandSettings = useBrandSettings();
+
   return (
     <aside className="rounded-xl border border-slate-200 bg-slate-100 p-5">
       <div className="flex items-center gap-4">
@@ -18,8 +23,8 @@ export function HelpCard() {
           </p>
         </div>
       </div>
-      <Button variant="outline" className="mt-4 w-full bg-white text-xs">
-        Contact Us
+      <Button asChild variant="outline" className="mt-4 w-full bg-white text-xs">
+        <a href={`mailto:${brandSettings.support_email}`}>Contact Us</a>
       </Button>
     </aside>
   );

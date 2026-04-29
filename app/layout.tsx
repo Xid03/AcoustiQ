@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { BrandTheme } from "@/components/brand-theme";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
@@ -21,7 +22,17 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "AcoustiQ | Acoustic Panel Configurator",
   description:
-    "A white-label acoustic panel configurator and quotation system for commercial acoustic treatment companies."
+    "A white-label acoustic panel configurator and quotation system for commercial acoustic treatment companies.",
+  icons: {
+    icon: [
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml"
+      }
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg"
+  }
 };
 
 export default function RootLayout({
@@ -34,6 +45,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} min-h-screen font-sans antialiased`}
       >
+        <BrandTheme />
         <a className="skip-link" href="#main-content">
           Skip to content
         </a>

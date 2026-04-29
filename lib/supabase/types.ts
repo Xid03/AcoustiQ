@@ -120,6 +120,7 @@ export type QuoteItemRow = {
 };
 
 export type LeadWithQuote = LeadRow & {
+  quote_id: string | null;
   quote_value: number | null;
   quote_number: string | null;
 };

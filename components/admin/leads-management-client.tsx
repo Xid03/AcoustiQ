@@ -162,6 +162,7 @@ export function LeadsManagementClient({ leads }: { leads: LeadWithQuote[] }) {
       phone: input.phone || null,
       project_name: input.projectName || null,
       project_type: input.projectType,
+      quote_id: null,
       quote_number: null,
       quote_value: null,
       source: input.source,
@@ -246,6 +247,65 @@ export function LeadsManagementClient({ leads }: { leads: LeadWithQuote[] }) {
     setSuccessOpen(true);
   }
 
+  async function handleCreateOrder(lead: LeadWithQuote) {
+    setErrorMessage(null);
+
+    const supabase = createSupabaseClient();
+
+    if (!supabase) {
+      setErrorMessage("Supabase is not configured. Check .env.local.");
+      return;
+    }
+
+    if (!lead.quote_id || !lead.quote_value) {
+      setErrorMessage("This lead does not have a quote to convert into an order.");
+      return;
+    }
+
+    const { data: existingOrder, error: existingOrderError } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("quote_id", lead.quote_id)
+      .maybeSingle();
+
+    if (existingOrderError) {
+      setErrorMessage(existingOrderError.message);
+      return;
+    }
+
+    if (existingOrder) {
+      setSuccessMessage("An order already exists for this quote.");
+      setSuccessOpen(true);
+      return;
+    }
+
+    const { error } = await supabase.from("orders").insert({
+      quote_id: lead.quote_id,
+      customer_name: lead.full_name,
+      customer_email: lead.email,
+      total: lead.quote_value,
+      payment_status: "Pending",
+      fulfillment_status: "New"
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    await supabase.from("leads").update({ status: "Viewed" }).eq("id", lead.id);
+
+    setLeadRows((currentRows) =>
+      currentRows.map((currentLead) =>
+        currentLead.id === lead.id
+          ? { ...currentLead, status: "Viewed" }
+          : currentLead
+      )
+    );
+    setSuccessMessage("Order created successfully. You can view it on the Orders page.");
+    setSuccessOpen(true);
+  }
+
   return (
     <>
       <div className="space-y-4">
@@ -294,6 +354,7 @@ export function LeadsManagementClient({ leads }: { leads: LeadWithQuote[] }) {
           leads={paginatedLeads}
           totalFilteredLeads={filteredLeads.length}
           totalPages={totalPages}
+          onCreateOrder={handleCreateOrder}
           onDeleteLead={handleDeleteLead}
           onPageChange={setPage}
           onStatusChange={handleStatusChange}
