@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { FileText, Lock, Mail, Users, User, Volume2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  FileText,
+  Lock,
+  Mail,
+  Users,
+  User,
+  Volume2
+} from "lucide-react";
 import { useState } from "react";
 
 import registerBackground from "@/images/backgroundregister.png";
@@ -17,6 +26,8 @@ export default function RegisterPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true);
@@ -145,7 +156,7 @@ export default function RegisterPage() {
               <span className="text-xl font-medium text-slate-700">Full name</span>
               <span className="relative mt-4 block">
                 <User className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
-                <Input name="fullName" required placeholder="John Doe" className="h-16 pl-16 text-xl" />
+                <Input name="fullName" required placeholder="Yazid Zaqwan" className="h-16 pl-16 text-xl" />
               </span>
             </label>
             <label className="block">
@@ -167,12 +178,25 @@ export default function RegisterPage() {
                 <Lock className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
                 <Input
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   minLength={8}
                   placeholder="Create a strong password"
-                  className="h-16 pl-16 text-xl"
+                  className="h-16 px-16 text-xl"
                 />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-6 w-6" />
+                  ) : (
+                    <Eye className="h-6 w-6" />
+                  )}
+                </button>
               </span>
             </label>
             <label className="block">
@@ -181,12 +205,29 @@ export default function RegisterPage() {
                 <Lock className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
                 <Input
                   name="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   required
                   minLength={8}
                   placeholder="Confirm your password"
-                  className="h-16 pl-16 text-xl"
+                  className="h-16 px-16 text-xl"
                 />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
+                  aria-pressed={showConfirmPassword}
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-6 w-6" />
+                  ) : (
+                    <Eye className="h-6 w-6" />
+                  )}
+                </button>
               </span>
             </label>
           </div>
@@ -199,11 +240,11 @@ export default function RegisterPage() {
             />
             <span>
               I agree to the{" "}
-              <Link href="#" className="text-indigo-600">
+              <Link href="/terms" className="text-indigo-600">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="#" className="text-indigo-600">
+              <Link href="/privacy" className="text-indigo-600">
                 Privacy Policy
               </Link>
             </span>

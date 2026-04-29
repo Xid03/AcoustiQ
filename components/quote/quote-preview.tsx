@@ -85,13 +85,13 @@ export function QuotePreview() {
                 className="mt-2 text-sm font-semibold"
                 style={{ color: brandSettings.primary_color }}
               >
-                {leadDetails?.fullName || "John Doe"}
+                {leadDetails?.fullName || "Yazid Zaqwan"}
               </p>
               <p className="mt-1 text-sm text-slate-700">
-                {leadDetails?.companyName || "Acme Corporation"}
+                {leadDetails?.companyName || "QFlow Sdn. Bhd."}
               </p>
               <p className="mt-1 text-sm text-slate-700">
-                {leadDetails?.email || "john.doe@acme.com"}
+                {leadDetails?.email || "yazid.zaqwan@example.com"}
               </p>
             </div>
             <div>

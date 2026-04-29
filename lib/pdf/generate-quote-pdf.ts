@@ -77,12 +77,12 @@ export async function generateQuotePdf({
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(11);
   pdf.setTextColor(normalizedBrandSettings.primary_color);
-  pdf.text(textOrFallback(leadDetails?.fullName, "John Doe"), margin, 168);
+  pdf.text(textOrFallback(leadDetails?.fullName, "Yazid Zaqwan"), margin, 168);
 
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor("#334155");
-  pdf.text(textOrFallback(leadDetails?.companyName, "Acme Corporation"), margin, 186);
-  pdf.text(textOrFallback(leadDetails?.email, "john.doe@acme.com"), margin, 204);
+  pdf.text(textOrFallback(leadDetails?.companyName, "QFlow Sdn. Bhd."), margin, 186);
+  pdf.text(textOrFallback(leadDetails?.email, "yazid.zaqwan@example.com"), margin, 204);
 
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor("#0f172a");

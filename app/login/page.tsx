@@ -3,7 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Eye, FileText, Lock, Mail, Users, Volume2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  FileText,
+  Lock,
+  Mail,
+  Users,
+  Volume2
+} from "lucide-react";
 import { Suspense, useState } from "react";
 
 import registerBackground from "@/images/backgroundregister.png";
@@ -33,6 +42,7 @@ function LoginPageContent() {
   const redirectedFrom = searchParams.get("redirectedFrom") || "/admin";
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   async function handleSubmit(formData: FormData) {
@@ -62,28 +72,6 @@ function LoginPageContent() {
     window.setTimeout(() => {
       window.location.href = redirectedFrom;
     }, 1200);
-  }
-
-  async function handleGoogleSignIn() {
-    setErrorMessage(null);
-
-    const supabase = createSupabaseClient();
-
-    if (!supabase) {
-      setErrorMessage("Supabase is not configured. Check .env.local.");
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}${redirectedFrom}`
-      }
-    });
-
-    if (error) {
-      setErrorMessage(error.message);
-    }
   }
 
   return (
@@ -209,12 +197,24 @@ function LoginPageContent() {
                   <Lock className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
                   <Input
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     placeholder="Enter your password"
                     className="h-16 px-16 text-xl"
                   />
-                  <Eye className="pointer-events-none absolute right-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-6 w-6" />
+                    ) : (
+                      <Eye className="h-6 w-6" />
+                    )}
+                  </button>
                 </span>
               </label>
             </div>
@@ -241,22 +241,6 @@ function LoginPageContent() {
 
             <Button type="submit" className="mt-8 h-16 w-full text-xl" disabled={isSubmitting}>
               {isSubmitting ? "Signing in..." : "Sign in"}
-            </Button>
-
-            <div className="my-10 flex items-center gap-6">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-base font-medium text-slate-500">or continue with</span>
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="h-16 w-full border-slate-300 bg-white text-xl font-medium text-slate-700 hover:bg-slate-50"
-              onClick={handleGoogleSignIn}
-            >
-              <span className="mr-3 text-2xl font-semibold text-blue-600">G</span>
-              Continue with Google
             </Button>
 
             <p className="mt-9 text-center text-xl text-slate-500">

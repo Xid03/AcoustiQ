@@ -213,7 +213,7 @@ export function LeadsToolbar({
                     <Input
                       required
                       name="full_name"
-                      placeholder="Sarah Johnson"
+                      placeholder="Aina Sofea"
                       className="mt-2 bg-white"
                     />
                   </label>
@@ -225,7 +225,7 @@ export function LeadsToolbar({
                       required
                       name="email"
                       type="email"
-                      placeholder="sarah@example.com"
+                      placeholder="aina.sofea@example.com"
                       className="mt-2 bg-white"
                     />
                   </label>
@@ -235,7 +235,7 @@ export function LeadsToolbar({
                     </span>
                     <Input
                       name="company_name"
-                      placeholder="Acme Corporation"
+                      placeholder="QFlow Sdn. Bhd."
                       className="mt-2 bg-white"
                     />
                   </label>
